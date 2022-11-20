@@ -1,0 +1,466 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		// UART_HAL_ECHO build tasks
+		{
+			"type": "shell",
+			"label": "Make: UART_HAL_ECHO (Debug)",
+			"command": "make",
+			"isBackground": true,
+			"args": [
+				"-C",
+				"Application/uart_hal_echo",
+				"build=Debug"
+			],
+			"problemMatcher": [
+				"$gcc"
+			],
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+		},
+		{
+			"type": "shell",
+			"label": "Make: UART_HAL_ECHO (Release)",
+			"command": "make",
+			"args": [
+				"-C",
+				"Application/uart_hal_echo",
+				"build=Release"
+			],
+			"problemMatcher": [
+				"$gcc"
+			],
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+		},
+		{
+			"type": "shell",
+			"label": "Make: UART_HAL_ECHO (RelMinSize)",
+			"command": "make",
+			"args": [
+				"-C",
+				"Application/uart_hal_echo",
+				"build=RelMinSize"
+			],
+			"problemMatcher": [
+				"$gcc"
+			],
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+		},
+		// UART_HAL_TX build tasks
+		{
+			"type": "shell",
+			"label": "Make: UART_HAL_TX (Debug)",
+			"command": "make",
+			"args": [
+				"-C",
+				"Application/uart_hal_tx",
+				"build=Debug"
+			],
+			"problemMatcher": [
+				"$gcc"
+			],
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			
+		},
+		{
+			"type": "shell",
+			"label": "Make: UART_HAL_TX (Release)",
+			"command": "make",
+			"args": [
+				"-C",
+				"Application/uart_hal_tx",
+				"build=Release"
+			],
+			"problemMatcher": [
+				"$gcc"
+			],
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			
+		},
+		{
+			"type": "shell",
+			"label": "Make: UART_HAL_TX (RelMinSize)",
+			"command": "make",
+			"args": [
+				"-C",
+				"Application/uart_hal_tx",
+				"build=RelMinSize"
+			],
+			"problemMatcher": [
+				"$gcc"
+			],
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			
+		},
+
+		// UART_LL_ECHO build tasks
+		{
+			"type": "shell",
+			"label": "Make: UART_LL_ECHO (Debug)",
+			"command": "make",
+			"args": [
+				"-C",
+				"Application/uart_ll_echo",
+				"build=Debug"
+			],
+			"problemMatcher": [
+				"$gcc"
+			],
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			
+		},
+		{
+			"type": "shell",
+			"label": "Make: UART_LL_ECHO (Release)",
+			"command": "make",
+			"args": [
+				"-C",
+				"Application/uart_ll_echo",
+				"build=Release"
+			],
+			"problemMatcher": [
+				"$gcc"
+			],
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			
+		},
+		{
+			"type": "shell",
+			"label": "Make: UART_LL_ECHO (RelMinSize)",
+			"command": "make",
+			"args": [
+				"-C",
+				"Application/uart_ll_echo",
+				"build=RelMinSize"
+			],
+			"problemMatcher": [
+				"$gcc"
+			],
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			
+		},
+		// UART_LL_TX build tasks
+		{
+			"type": "shell",
+			"label": "Make: UART_LL_TX (Debug)",
+			"command": "make",
+			"args": [
+				"-C",
+				"Application/uart_ll_tx",
+				"build=Debug"
+			],
+			"problemMatcher": [
+				"$gcc"
+			],
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			
+		},
+		{
+			"type": "shell",
+			"label": "Make: UART_LL_TX (Release)",
+			"command": "make",
+			"args": [
+				"-C",
+				"Application/uart_ll_tx",
+				"build=Release"
+			],
+			"problemMatcher": [
+				"$gcc"
+			],
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			
+		},
+		{
+			"type": "shell",
+			"label": "Make: UART_LL_TX (RelMinSize)",
+			"command": "make",
+			"args": [
+				"-C",
+				"Application/uart_ll_tx",
+				"build=RelMinSize"
+			],
+			"problemMatcher": [
+				"$gcc"
+			],
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			
+		},
+
+		// UART_LL_DMA_ECHO build tasks
+		{
+			"type": "shell",
+			"label": "Make: UART_LL_DMA_ECHO (Debug)",
+			"command": "make",
+			"args": [
+				"-C",
+				"Application/uart_ll_dma_echo",
+				"build=Debug"
+			],
+			"problemMatcher": [
+				"$gcc"
+			],
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			
+		},
+		{
+			"type": "shell",
+			"label": "Make: UART_LL_DMA_ECHO (Release)",
+			"command": "make",
+			"args": [
+				"-C",
+				"Application/uart_ll_dma_echo",
+				"build=Release"
+			],
+			"problemMatcher": [
+				"$gcc"
+			],
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			
+		},
+		{
+			"type": "shell",
+			"label": "Make: UART_LL_DMA_ECHO (RelMinSize)",
+			"command": "make",
+			"args": [
+				"-C",
+				"Application/uart_ll_dma_echo",
+				"build=RelMinSize"
+			],
+			"problemMatcher": [
+				"$gcc"
+			],
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			
+		},
+		// UART_LL_DMA_TX build tasks
+		{
+			"type": "shell",
+			"label": "Make: UART_LL_DMA_TX (Debug)",
+			"command": "make",
+			"args": [
+				"-C",
+				"Application/uart_ll_dma_tx",
+				"build=Debug"
+			],
+			"problemMatcher": [
+				"$gcc"
+			],
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			
+		},
+		{
+			"type": "shell",
+			"label": "Make: UART_LL_DMA_TX (Release)",
+			"command": "make",
+			"args": [
+				"-C",
+				"Application/uart_ll_dma_tx",
+				"build=Release"
+			],
+			"problemMatcher": [
+				"$gcc"
+			],
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			
+		},
+		{
+			"type": "shell",
+			"label": "Make: UART_LL_DMA_TX (RelMinSize)",
+			"command": "make",
+			"args": [
+				"-C",
+				"Application/uart_ll_dma_tx",
+				"build=RelMinSize"
+			],
+			"problemMatcher": [
+				"$gcc"
+			],
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			
+		},
+
+		// build all targets
+		{
+			"type": "shell",
+			"label": "Make: All (Debug)",
+			"command": "make",
+			"args": [
+				"build=Debug"
+			],
+			"problemMatcher": [
+				"$gcc"
+			],
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			}
+		},
+		{
+			"type": "shell",
+			"label": "Make: All (Release)",
+			"command": "make",
+			"args": [
+				"build=Release"
+			],
+			"problemMatcher": [
+				"$gcc"
+			],
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			}
+		},
+		{
+			"type": "shell",
+			"label": "Make: All (RelMinSize)",
+			"command": "make",
+			"args": [
+				"build=RelMinSize"
+			],
+			"problemMatcher": [
+				"$gcc"
+			],
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			}
+		},
+
+		// clean build directory
+		{
+			"type": "shell",
+			"label": "Make: clean",
+			"command": "make",
+			"args": [
+				"clean"
+			],
+			"problemMatcher": [
+				"$gcc"
+			],
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			
+		},
+
+		// flash mass erase
+		{
+			"type": "shell",
+            "label": "CubeProg: Flash Mass Erase (SWD)",
+            "command": "STM32_Programmer_CLI",
+            "args": [
+				"--connect",
+                "port=swd",
+                "--erase", "all",
+                "-hardRst"
+            ],
+            "options": {
+				"cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": []
+        },
+
+		// flash mass erase
+		{
+			"type": "shell",
+            "label": "CubeProg: Flash project (SWD)",
+            "command": "STM32_Programmer_CLI",
+            "args": [
+				"--connect",
+                "port=swd",
+                "--download", "${command:cmake.launchTargetPath}",
+                "-hardRst"
+            ],
+            "options": {
+				"cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": []
+        },
+		
+		// list all communication interfaces
+        {
+			"type": "shell",
+            "label": "CubeProg: List all available communication interfaces",
+            "command": "STM32_Programmer_CLI",
+            "args": [
+				"--list",
+            ],
+            "options": {
+				"cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": []
+        },
+
+		// flash program
+		{
+			"type": "shell",
+			"label": "CubeProg: Flash project with defined serial number (SWD) - you must set serial number first",
+			"command": "STM32_Programmer_CLI",
+			"args": [
+				"--connect",
+				"port=swd",
+				"sn=39FF6F06304E353238191943",
+				"--download", "${command:cmake.launchTargetPath}",
+				"-hardRst"
+			],
+			"options": {
+				"cwd": "${workspaceFolder}"
+			},
+			"problemMatcher": []
+		},
+	]
+}
