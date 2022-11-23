@@ -1,122 +1,93 @@
-cmake_minimum_required(VERSION 3.18)
+include_guard(DIRECTORY)
 
-# Setup compiler settings
-set(CMAKE_C_STANDARD                99)
-set(CMAKE_C_STANDARD_REQUIRED       ON)
-set(CMAKE_C_EXTENSIONS              ON)
-set(PROJ_PATH                       ${CMAKE_CURRENT_SOURCE_DIR})
-message("Build type: "              ${CMAKE_BUILD_TYPE})
+include(cmake/st_hal.cmake)
+include(cmake/stm32f103cbtx.cmake)
+include(cmake/gcc-arm.cmake)
 
-# set(CMAKE_TRY_COMPILE_TARGET_TYPE "STATIC_LIBRARY")
-# set(CMAKE_VERBOSE_MAKEFILE TRUE)
-
-include_d
-
-#
-# Core project settings
-#
-project(SimpleOS)
-enable_language(C ASM)
-
-#
-# Core MCU flags, CPU, instruction set and FPU setup
-# Needs to be set properly for your MCU
-#
-set(CPU_PARAMETERS
-    -mthumb
-
-    # This needs attention to properly set for used MCU
-    -mcpu=cortex-m3
-    -mfloat-abi=soft
-)
-
-# Set linker script
-set(linker_script_SRC               ${PROJ_PATH}/STM32F103CBTx_FLASH.ld)
-set(EXECUTABLE                      ${CMAKE_PROJECT_NAME})
+set(EXECUTABLE UART_HAL_ECHO)
 
 #
 # List of source files to compile
 #
-set(sources_SRCS
+set(APP_SOURCES
     # Put here your source files, one in each line, relative to CMakeLists.txt file location
-    ${PROJ_PATH}/simple_os/simple_os.c
-    ${PROJ_PATH}/Core/Src/main.c 
-    ${PROJ_PATH}/Core/Src/gpio.c 
-    ${PROJ_PATH}/Core/Src/stm32f1xx_it.c 
-    ${PROJ_PATH}/Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_ll_gpio.c 
-    ${PROJ_PATH}/Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_ll_pwr.c 
-    ${PROJ_PATH}/Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_ll_exti.c 
-    ${PROJ_PATH}/Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_ll_usart.c 
-    ${PROJ_PATH}/Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_ll_dma.c 
-    ${PROJ_PATH}/Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_ll_rcc.c 
-    ${PROJ_PATH}/Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_ll_utils.c 
-    ${PROJ_PATH}/Core/Src/system_stm32f1xx.c
-    ${PROJ_PATH}/startup_stm32f103xb.s
+
+    # application source files
+    ${PROJECT_PATH}/Application/uart_hal_echo/Src/main.c
+    ${PROJECT_PATH}/Application/uart_hal_echo/Src/gpio.c
+    ${PROJECT_PATH}/Application/uart_hal_echo/Src/usart.c
+    ${PROJECT_PATH}/Application/uart_hal_echo/Src/stm32f1xx_it.c
+    ${PROJECT_PATH}/Application/uart_hal_echo/Src/syscalls.c
+    ${PROJECT_PATH}/Application/uart_hal_echo/Src/sysmem.c
+    ${PROJECT_PATH}/Application/uart_hal_echo/Src/system_stm32f1xx.c
+    
+    # modules source files
+    ${PROJECT_PATH}/Modules/buffer/ring_buffer.c
+    
+    # uart source files
+    ${PROJECT_PATH}/Modules/serial/uart/hal/uart.c
+
+    # HAL libraries source files (from st_hal.cmake)
+    ${HAL_DRIVERS_C_SOURCES}
+
+    ${STARTUP_CODE_SRC}
 )
-
-
-#
-# Include directories
-#
-set(include_path_DIRS
+    
+    
+    #
+    # Include directories
+    #
+set(APP_INCLUDE_PATHS
     # Put here your include dirs, one in each line, relative to CMakeLists.txt file location
-    ${PROJ_PATH}/Core/Inc
-    ${PROJ_PATH}/Drivers/STM32F1xx_HAL_Driver/Inc
-    ${PROJ_PATH}/Drivers/CMSIS/Device/ST/STM32F1xx/Include
-    ${PROJ_PATH}/Drivers/CMSIS/Include
-    ${PROJ_PATH}/simple_os
-    ${PROJ_PATH}/config
-    ${PROJ_PATH}/Libraries
+
+    # application include paths
+    ${PROJECT_PATH}/Application/uart_hal_echo/Inc
+
+    # configurations include paths
+    ${PROJECT_PATH}/Config/hal
+    
+    # modules include paths
+    ${PROJECT_PATH}/Modules
+
+    # HAL libraries include files (from st_hal.cmake)
+    ${HAL_DRIVERS_C_INCLUDES}
 )
 
 #
 # Symbols definition
 #
-set(symbols_SYMB
+set(APP_DEFINITIONS
     # Put here your symbols (preprocessor defines), one in each line
     # Encapsulate them with double quotes for safety purpose
-    "USE_FULL_LL_DRIVER"
-    "USE_FULL_ASSERT=1U"
-    "HSE_VALUE=8000000"
-    "HSE_STARTUP_TIMEOUT=100"
-    "LSE_STARTUP_TIMEOUT=5000"
-    "LSE_VALUE=32768"
-    "HSI_VALUE=8000000"
-    "LSI_VALUE=40000"
-    "VDD_VALUE=3300"
-    "PREFETCH_ENABLE=1"
-    "STM32F103xB"
+
+    # HAL libraries compiler definitions (from st_hal.cmake)
+    ${HAL_DRIVERS_C_DEFINITIONS}
+
+    ${COMPILER_DEFINITIONS}
 )
 
 # Executable files
-add_executable(${EXECUTABLE} ${sources_SRCS})
+add_executable(${EXECUTABLE} ${APP_SOURCES})
+
+# add startup code
+# target_sources(${EXECUTABLE} PRIVATE ${STARTUP_CODE_SRC})
 
 # Include paths
-target_include_directories(${EXECUTABLE} PRIVATE ${include_path_DIRS})
+target_include_directories(${EXECUTABLE} PRIVATE ${APP_INCLUDE_PATHS})
 
 # Project symbols
-target_compile_definitions(${EXECUTABLE} PRIVATE ${symbols_SYMB})
+target_compile_definitions(${EXECUTABLE} PRIVATE ${APP_DEFINITIONS})
 
 # Compiler options
 target_compile_options(${EXECUTABLE} PRIVATE
-    ${CPU_PARAMETERS}
-    -Wall
-    -Wextra
-    -Wpedantic
-    -Wno-unused-parameter
-    --std=c99
+    ${GCC_CPU_PARAMETERS}
+    ${COMPILER_FLAGS}
 )
 
 # Linker options
 target_link_options(${EXECUTABLE} PRIVATE
-    -T${linker_script_SRC}
-    ${CPU_PARAMETERS}
-    -Wl,-Map=${CMAKE_PROJECT_NAME}.map,--cref
-    -Wl,--start-group
-    -lc
-    -lm
-    -Wl,--end-group
-    -Wl,--print-memory-usage
+    ${LINKER_FLAGS}
+    -Wl,-Map=${EXECUTABLE}.map,--cref
 )
 
 # Execute post-build to print size
@@ -132,11 +103,4 @@ add_custom_command(TARGET ${EXECUTABLE} POST_BUILD
 # Convert to bin file -> add conditional check?
 add_custom_command(TARGET ${EXECUTABLE} POST_BUILD
     COMMAND ${CMAKE_OBJCOPY} -O binary $<TARGET_FILE:${EXECUTABLE}> ${EXECUTABLE}.bin
-)
-
-# static library build options
-set(STATIC_LIBRARY                  lib${CMAKE_PROJECT_NAME})
-
-set(sources_STATIC_LIBRARY
-    ${PROJ_PATH}/simple_os/simple_os.c
 )

@@ -15,7 +15,7 @@
             "cacheVariables": {
                 "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
                 "CMAKE_INSTALL_PREFIX": "F:/Programs/CMake",
-                "CMAKE_VERBOSE_MAKEFILE": "TRUE",
+                "CMAKE_VERBOSE_MAKEFILE": "FALSE", 
                 "CMAKE_TRY_COMPILE_TARGET_TYPE": "STATIC_LIBRARY",
                 "CMAKE_C_FLAGS_DEBUG": "-Og -g3 -ggdb -gdwarf-2 -DDEBUG"
             }
