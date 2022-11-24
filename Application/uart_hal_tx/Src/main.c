@@ -1,6 +1,6 @@
 /******************************************************************************
  * @file        main.c 
- * @brief       Transmit data on UARTUART channels, using 
+ * @brief       Transmit data on UART channels, using 
  *              UART HAL (ST HAL drivers) implementation 
  *              (Modules/serial/uart/hal/uart.c)
  * @details     Continuously sends a long text on UART channels UART1, UART2 
@@ -31,7 +31,7 @@
 #include "main.h"
 #include "gpio.h"
 
-#include "board_config.h"
+#include "hal/board_config.h"
 #include "serial/uart/uart.h"
 
 /* Private typedef --------------------------------------------------------- */
@@ -223,8 +223,9 @@ int main(void)
     }
 }
 
- * @brief Update UART channels when @ref UART_MINIMAL_INTERRUPTS is enabled
- */
+/**
+* @brief Update UART channels when @ref UART_MINIMAL_INTERRUPTS is enabled
+*/
 void HAL_SYSTICK_Callback(void)
 {
     UART_enUpdateChannel(UART_CHANNEL_1);

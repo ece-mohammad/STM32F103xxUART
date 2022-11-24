@@ -44,7 +44,7 @@ set(APP_INCLUDE_PATHS
     ${PROJECT_PATH}/Application/uart_ll_tx/Inc
 
     # configurations include paths
-    ${PROJECT_PATH}/Config/ll
+    ${PROJECT_PATH}/Config
     
     # modules include paths
     ${PROJECT_PATH}/Modules

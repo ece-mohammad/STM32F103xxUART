@@ -45,7 +45,7 @@ set(APP_INCLUDE_PATHS
     ${PROJECT_PATH}/Application/uart_ll_dma_echo/Inc
 
     # configurations include paths
-    ${PROJECT_PATH}/Config/ll_dma
+    ${PROJECT_PATH}/Config
     
     # modules include paths
     ${PROJECT_PATH}/Modules

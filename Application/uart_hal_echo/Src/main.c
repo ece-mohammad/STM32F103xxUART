@@ -29,7 +29,7 @@
 #include "main.h"
 #include "gpio.h"
 
-#include "board_config.h"
+#include "hal/board_config.h"
 #include "serial/uart/uart.h"
 
 /* Private typedef --------------------------------------------------------- */
@@ -47,15 +47,10 @@ typedef struct line_t
 /* Private define ---------------------------------------------------------- */
 
 /**
- * @brief UART baudrate
+ * @brief UART received data
  */
 #define UART_BAUDRATE           921600
 // #define UART_BAUDRATE           115200
-
-/**
- * @brief 
- */
-#define LOOPBACK_RX_BUFFER_SIZE 256
 
 /**
  * @brief Max baudrate for all UART channels @ clock speed Fclk = 36 MHz 
@@ -65,6 +60,11 @@ typedef struct line_t
 #if UART_BAUDRATE > MAX_BAUDRATE
 #error Maximum alowed baudrate is 921600
 #endif
+
+/**
+ * @brief UART loop back buffer size
+ */
+#define LOOPBACK_RX_BUFFER_SIZE 256
 
 /* Private macro ----------------------------------------------------------- */
 
@@ -132,19 +132,18 @@ void SystemClock_Config(void)
      *   - Enable HSI
      *   - Enable  PLL
      *   - PLL_CLK_SRC  = HSI_CLK / 2
-     *   - PLL_MUL      = PLL_MUL_9
+     *   - PLL_MUL      = PLL_MUL_8
      * 
      * PLL_CLK  = PLL_CLK_SRC * PLL_MUL 
-     *          = HSI_CLK / 2 * 9
-     *          = 4 * 6
-     * PLL_CLK  = 36 MHz
+     *          = HSI_CLK / 2 * 8
+     * PLL_CLK  = 32 MHz
      */
     RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
     RCC_OscInitStruct.HSIState = RCC_HSI_ON;
     RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
     RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
     RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI_DIV2;
-    RCC_OscInitStruct.PLL.PLLMUL = RCC_PLL_MUL9;
+    RCC_OscInitStruct.PLL.PLLMUL = RCC_PLL_MUL8;
     if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
     {
         Error_Handler();

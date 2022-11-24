@@ -10,7 +10,7 @@
 #include <stdint.h>
 #include <main.h>
 
-#include "board_config.h"
+// #include "board_config.h"
 
 #include "serial/uart/uart.h"
 #include "debug.h"
@@ -19,27 +19,27 @@
 
 #ifdef USE_HAL_DRIVER
 
-static const UART_Conf_t Debug_sUartConf = {
-    .BaudRate               = CONF_DEBUG_UART_BAUDRATE,
-    .Parity                 = CONF_DEBUG_UART_PARITY,
-    .StopBits               = CONF_DEBUG_UART_STOPBITS,
-    .WordLength             = CONF_DEBUG_UART_DATASIZE,
-    .Mode                   = UART_MODE_TX,
-    .HwFlowCtl              = UART_HWCONTROL_NONE,
-    .OverSampling           = UART_OVERSAMPLING_16,
-};
+// static const UART_Conf_t Debug_sUartConf = {
+//     .BaudRate               = CONF_DEBUG_UART_BAUDRATE,
+//     .Parity                 = CONF_DEBUG_UART_PARITY,
+//     .StopBits               = CONF_DEBUG_UART_STOPBITS,
+//     .WordLength             = CONF_DEBUG_UART_DATASIZE,
+//     .Mode                   = UART_MODE_TX,
+//     .HwFlowCtl              = UART_HWCONTROL_NONE,
+//     .OverSampling           = UART_OVERSAMPLING_16,
+// };
 
 #else
 
-static const UART_Conf_t Debug_sUartConf = {
-    .BaudRate               = CONF_DEBUG_UART_BAUDRATE,
-    .Parity                 = CONF_DEBUG_UART_PARITY,
-    .StopBits               = CONF_DEBUG_UART_STOPBITS,
-    .DataWidth              = CONF_DEBUG_UART_DATASIZE,
-    .TransferDirection      = LL_USART_DIRECTION_TX,
-    .HardwareFlowControl    = LL_USART_HWCONTROL_NONE,
-    .OverSampling           = LL_USART_OVERSAMPLING_16,
-};
+// static const UART_Conf_t Debug_sUartConf = {
+//     .BaudRate               = CONF_DEBUG_UART_BAUDRATE,
+//     .Parity                 = CONF_DEBUG_UART_PARITY,
+//     .StopBits               = CONF_DEBUG_UART_STOPBITS,
+//     .DataWidth              = CONF_DEBUG_UART_DATASIZE,
+//     .TransferDirection      = LL_USART_DIRECTION_TX,
+//     .HardwareFlowControl    = LL_USART_HWCONTROL_NONE,
+//     .OverSampling           = LL_USART_OVERSAMPLING_16,
+// };
 
 #endif /*  USE_HAL_DRIVER  */
 

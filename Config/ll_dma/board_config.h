@@ -58,17 +58,29 @@
 
 /**
  * UART channels TX/RX buffer sizes, DMA TX size and RX buffer size
+ * 
+ * Calculating DMA RX buffer size
+ * 
+ * UART baudrate = 921600 bps
+ * OR 921600 / 10 = 92160 Byte / sec
+ * 
+ * UART_enUpdateChannel() is called every 1 milli-second
+ * 92160 / 1000 = 92.160 Bytes / milli-second 
+ * OR ceil(92.16) = 92 Bytes / mili-second
+ * 
+ * DMA half transfer and DMA transfer complete interrupts
+ * DMA RX buffer = (93 * 2) = 186 bytes
  * */
 #ifdef CONF_UART_ENABLE_CHANNEL_1
 
 #ifdef CONF_UART_ENABLE_CHANNEL_1_TX
 #define CONF_UART_CHANNEL_1_TX_BUFFER_SIZE       256
-#define CONF_UART_DMA_CHANNEL_1_TX_SIZE          44
+#define CONF_UART_DMA_CHANNEL_1_TX_SIZE          186
 #endif  /*  CONF_UART_ENABLE_CHANNEL_1_TX  */
 
 #ifdef CONF_UART_ENABLE_CHANNEL_1_RX
 #define CONF_UART_CHANNEL_1_RX_BUFFER_SIZE       256
-#define CONF_UART_DMA_CHANNEL_1_RX_BUFFER_SIZE   44
+#define CONF_UART_DMA_CHANNEL_1_RX_BUFFER_SIZE   186
 #endif  /*  CONF_UART_ENABLE_CHANNEL_1_RX  */
 
 #endif  /*  CONF_UART_ENABLE_CHANNEL_1  */
@@ -77,12 +89,12 @@
 
 #ifdef CONF_UART_ENABLE_CHANNEL_2_TX
 #define CONF_UART_CHANNEL_2_TX_BUFFER_SIZE       256
-#define CONF_UART_DMA_CHANNEL_2_TX_SIZE          44
+#define CONF_UART_DMA_CHANNEL_2_TX_SIZE          186
 #endif  /*  CONF_UART_ENABLE_CHANNEL_2_TX  */
 
 #ifdef CONF_UART_ENABLE_CHANNEL_2_RX
 #define CONF_UART_CHANNEL_2_RX_BUFFER_SIZE       256
-#define CONF_UART_DMA_CHANNEL_2_RX_BUFFER_SIZE   44
+#define CONF_UART_DMA_CHANNEL_2_RX_BUFFER_SIZE   186
 #endif  /*  CONF_UART_ENABLE_CHANNEL_2_RX  */
 
 #endif  /*  CONF_UART_ENABLE_CHANNEL_2  */
@@ -91,12 +103,12 @@
 
 #ifdef CONF_UART_ENABLE_CHANNEL_3_TX
 #define CONF_UART_CHANNEL_3_TX_BUFFER_SIZE       256
-#define CONF_UART_DMA_CHANNEL_3_TX_SIZE          44
+#define CONF_UART_DMA_CHANNEL_3_TX_SIZE          186
 #endif  /*  CONF_UART_ENABLE_CHANNEL_3_TX  */
 
 #ifdef CONF_UART_ENABLE_CHANNEL_3_RX
 #define CONF_UART_CHANNEL_3_RX_BUFFER_SIZE       256
-#define CONF_UART_DMA_CHANNEL_3_RX_BUFFER_SIZE   44
+#define CONF_UART_DMA_CHANNEL_3_RX_BUFFER_SIZE   186
 #endif  /*  CONF_UART_ENABLE_CHANNEL_3_RX  */
 
 #endif  /*  CONF_UART_ENABLE_CHANNEL_3  */

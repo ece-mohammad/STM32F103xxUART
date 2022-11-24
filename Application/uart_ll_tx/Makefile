@@ -72,8 +72,6 @@ $(addprefix Src/,$(filter %.c,$(shell ls Src)))
 MODULES_C_SOURCES = \
 ../../Modules/buffer/ring_buffer.c \
 
-# ../../Modules/serial_debug/debug.c \
-
 
 # UART_LL module files ----------------------------------------------------------------------
 UART_LL_C_SOURCES = \
@@ -101,7 +99,7 @@ ASM_SOURCES =  \
 
 APP_C_INCUDES = \
 Inc \
-$(CONFIG_DIR)/ll \
+$(CONFIG_DIR) \
 
 
 MODULES_C_INCLUDES = \
