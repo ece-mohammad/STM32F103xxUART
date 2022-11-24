@@ -13,11 +13,11 @@
 /* -------------------------------------------------------------------------- */
 
 /**
- * Switch to enable/disable handling DMA TX/RX inside interrupts
- * If disabled, UART_vidUpdateChannel() must be called periodically with a
+ * Switch to enable/disable handling data TX/RX inside interrupts
+ * If enabled, UART_vidUpdateChannel() must be called periodically with a
  * high enough rate to handle data transmission/reception without any data loss
  * */
-/* #define CONF_UART_DMA_MINIMAL_INTERRUPTS */
+/* #define CONF_UART_MINIMAL_INTERRUPTS */
 
 /**
  * UART interrupts priorities

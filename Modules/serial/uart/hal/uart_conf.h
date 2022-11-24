@@ -1,9 +1,11 @@
 /******************************************************************************
- * @file      uart_conf.h
- * @brief
- * @version   1.0
- * @date      Apr 25, 2022
- * @copyright
+ * @file        uart_conf.h
+ * @brief       UART configurations used to initialize UART channels.
+ * @details     
+ *              
+ * @version     1.0
+ * @date        Apr 25, 2022
+ * @copyright   
  *****************************************************************************/
 #ifndef __UART_UART_CONF_H__
 #define __UART_UART_CONF_H__
@@ -13,18 +15,23 @@
 
 /* -------------------------------------------------------------------------- */
 
-// /**
-//  * Switch to enable/disable handling DMA TX/RX inside interrupts
-//  * If disabled, UART_vidUpdateChannel() must be called periodically with a
-//  * high enough rate to handle data transmission/reception without any data loss
-//  * */
-// #ifdef CONF_UART_DMA_MINIMAL_INTERRUPTS
-// #define UART_DMA_MINIMAL_INTERRUPTS
-// #endif /*  CONF_UART_DMA_MINIMAL_INTERRUPTS  */
+/**
+ * @defgroup uart_configurations UART configurations
+ * @{
+ */
+
+/**
+ * @brief Switch to enable/disable handling data TX/RX inside interrupts
+ * If enabled, UART_vidUpdateChannel() must be called periodically with a
+ * high enough rate to handle data transmission/reception without any data loss
+ * */
+#ifdef CONF_UART_MINIMAL_INTERRUPTS
+#define UART_MINIMAL_INTERRUPTS
+#endif /*  CONF_UART_MINIMAL_INTERRUPTS  */
 
 
 /**
- * UART interrupts priorities
+ * @brief UART interrupts priorities
  * */
 #ifdef CONF_UART_INTERRUPT_PREEMPTION_PRIORITY
 #define UART_INTERRUPT_PREEMPTION_PRIORITY      CONF_UART_INTERRUPT_PREEMPTION_PRIORITY
@@ -40,12 +47,12 @@
 
 
 /* -------------------------------------------------------------------------- */
-
-
-/* -------------------------------------------------------------------------- */
 /* --------------------- Enable/Disable UART Channels ----------------------- */
 /* -------------------------------------------------------------------------- */
 
+/**
+ * @brief 
+ */
 #ifdef CONF_UART_ENABLE_CHANNEL_1
 #define UART_ENABLE_CHANNEL_1
 #endif /*  CONF_UART_ENABLE_CHANNEL_1  */
@@ -246,5 +253,7 @@
 #endif  /*  UART_ENABLE_CHANNEL_3  */
 
 /* -------------------------------------------------------------------------- */
+
+/**@}*/
 
 #endif /* __UART_UART_CONF_H__ */

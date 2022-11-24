@@ -1,15 +1,15 @@
 /******************************************************************************
- * @file      port_uart.c
- * @brief
- * @version   1.0
- * @date      Apr 3, 2022
- * @copyright
+ * @file        uart.c
+ * @brief       UART asynchronous read/write implementation using ST HAL 
+ *              drivers for STM32F103CBTx
+ * @version     1.0
+ * @date        Apr 3, 2022
+ * @copyright   
  *****************************************************************************/
 
 #include <stddef.h>
 #include <stdint.h>
 #include <string.h>
-
 
 #include "buffer/ring_buffer.h"
 #include "utils/utils.h"
@@ -20,25 +20,36 @@
 /* -------------------------------------------------------------------------- */
 
 /**
- * UART structure
+ * @brief UART structure
  * */
 typedef struct {
-        UART_HandleTypeDef *    handle;         /**<    */
+        UART_HandleTypeDef *    handle;         /**<  HAL UART handle, used by ST HAL drivers to interface with UART  */
 
-        GPIO_TypeDef *          gpio_port;      /**<    */
-        uint32_t                tx_pin;         /**<    */
-        uint32_t                rx_pin;         /**<    */
+        GPIO_TypeDef *          gpio_port;      /**<  pointer to UART TX/RX pins GPIO port, to initialize UART TX/RX gpio pins  */
+        uint32_t                tx_pin;         /**<  UART TX gpio pin  */
+        uint32_t                rx_pin;         /**<  UART RX gpio pin  */
 
-        RingBuffer_t *          rx_buffer;      /**<    */
-        uint8_t *               rx;             /**<    */
-        uint32_t                rx_size;        /**<    */
+        RingBuffer_t *          rx_buffer;      /**<  pointer to UART RX buffer  */
+        uint8_t *               rx;             /**<  pointer to UART RX buffer array  */
+        uint32_t                rx_size;        /**<  size of UART RX buffer  */
 
-        RingBuffer_t *          tx_buffer;      /**<    */
-        uint8_t *               tx;             /**<    */
-        uint32_t                tx_size;        /**<    */
+        RingBuffer_t *          tx_buffer;      /**<  pointer to UART TX buffer  */
+        uint8_t *               tx;             /**<  pointer to UART TX buffer array  */
+        uint32_t                tx_size;        /**<  size of UART TX buffer  */
 
-        IRQn_Type               uart_irq;       /**<    */
+        IRQn_Type               uart_irq;       /**<  UART IRQn (IRQ number), used to enable/disable UART interrupts in NVIC  */
 } UART_t;
+
+/* -------------------------------------------------------------------------- */
+
+/**
+ * @brief Handle UART TX, RX and errors (PE : Parity Error, NE : Noise Error,
+ *        FE :  Frame Error and ORE : Over-Run Error).
+ * 
+ * @param [in,out] psUart UART_t pointer of UART channel (UART_1, UART_2, UART_3, ...)
+ * 
+ */
+static void UART_vidIrqCallback(UART_t const * const psUart);
 
 /* -------------------------------------------------------------------------- */
 
@@ -172,7 +183,7 @@ static const UART_t UART_3 = {
 /* ------------------------------------------------------------------------- */
 
 /**
- * Array to UART handles
+ * Array to UART channels' handles
  * */
 static const UART_t * const UART_asHandles[UART_CHANNEL_COUNT] = {
 
@@ -211,7 +222,7 @@ UART_Error_t UART_enInitialize(const UART_Channel_t enChannel, UART_Conf_t const
         return UART_ERROR_NULLPTR;
     }
 
-    if((enChannel >= UART_CHANNEL_COUNT) || IS_NULLPTR(Local_psUart = UART_asHandles[enChannel]))
+    if((enChannel >= UART_CHANNEL_COUNT) || IS_NULLPTR(Local_psUart = (UART_t *)UART_asHandles[enChannel]))
     {
         return UART_ERROR_INVALID_CHANNEL;
     }
@@ -222,6 +233,7 @@ UART_Error_t UART_enInitialize(const UART_Channel_t enChannel, UART_Conf_t const
 
 #endif /*  DEBUG  */
 
+    /* enable UART clock and its pin's GPIO port clock */
     switch(enChannel)
     {
         case UART_CHANNEL_1:
@@ -252,7 +264,7 @@ UART_Error_t UART_enInitialize(const UART_Channel_t enChannel, UART_Conf_t const
         }
     }
 
-    /*  initialize UART RX buffers  */
+    /*  initialize UART RX buffer  */
     if(Local_psUart->rx_size)
     {
         Local_enBufferError = RingBuffer_enInit(Local_psUart->rx_buffer, Local_psUart->rx, Local_psUart->rx_size);
@@ -264,7 +276,7 @@ UART_Error_t UART_enInitialize(const UART_Channel_t enChannel, UART_Conf_t const
         HAL_GPIO_Init(Local_psUart->gpio_port, &Local_sGpioInit);
     }
 
-    /*  initialize UART TX buffers  */
+    /*  initialize UART TX buffer  */
     if(Local_psUart->tx_size)
     {
         Local_enBufferError = RingBuffer_enInit(Local_psUart->tx_buffer, Local_psUart->tx, Local_psUart->tx_size);
@@ -284,6 +296,7 @@ UART_Error_t UART_enInitialize(const UART_Channel_t enChannel, UART_Conf_t const
     {
         return UART_ERROR_NOT_INIT;
     }
+
 
     /*  enable UART RX/Error interrupts if RX mode is enabled  */
     if((psConf->Mode & UART_MODE_RX) == UART_MODE_RX)
@@ -308,7 +321,7 @@ UART_Error_t UART_enDeInitialize(const UART_Channel_t enChannel)
 
 #ifdef DEBUG
 
-    if((enChannel >= UART_CHANNEL_COUNT) || IS_NULLPTR(Local_psUart = UART_asHandles[enChannel]))
+    if((enChannel >= UART_CHANNEL_COUNT) || IS_NULLPTR(Local_psUart = (UART_t *)UART_asHandles[enChannel]))
     {
         return UART_ERROR_INVALID_CHANNEL;
     }
@@ -347,7 +360,6 @@ UART_Error_t UART_enDeInitialize(const UART_Channel_t enChannel)
 
 UART_Error_t UART_enRead(const UART_Channel_t enChannel, uint8_t * const pu8Data, uint32_t u32Len, uint32_t * const pu32Count)
 {
-    RingBuffer_Counter_t Local_u32Count = 0;
     UART_t * Local_psUart = NULL;
 
 #ifdef DEBUG
@@ -377,16 +389,11 @@ UART_Error_t UART_enRead(const UART_Channel_t enChannel, uint8_t * const pu8Data
 
 #endif /*  DEBUG  */
 
+    /* read byte from UART RX buffer */
+    RingBuffer_enGetItems(Local_psUart->rx_buffer, pu8Data, u32Len, pu32Count);
 
-    // CRITICAL_SECTION_BEGIN();
-
-    RingBuffer_enGetItems(Local_psUart->rx_buffer, pu8Data, u32Len, &Local_u32Count);
-
-    // CRITICAL_SECTION_END();
-
-    (*pu32Count) = Local_u32Count;
-
-    if(Local_u32Count == 0)
+    /* If RX buffer is empty, return buffer empty error */
+    if((*pu32Count) == 0)
     {
         return UART_ERROR_BUFFER_EMPTY;
     }
@@ -429,8 +436,12 @@ UART_Error_t UART_enReadUntil(const UART_Channel_t enChannel, uint8_t * const pu
 
 #endif /*  DEBUG  */
 
-    // CRITICAL_SECTION_BEGIN();
-
+    /**
+     *  read bytes from UART RX buffer until one of the following conditions is true:
+     *  - UART RX buffer is empty 
+     *  - a byte is read that has the value == u8Until
+     *  - u32Len bytes were read from UART RX buffer
+     * */
     while((Local_u32Count < u32Len) && (RingBuffer_enGetItem(Local_psUart->rx_buffer, &Local_u8Byte) == RING_BUFFER_ERROR_NONE))
     {
         pu8Data[Local_u32Count++] = Local_u8Byte;
@@ -445,10 +456,9 @@ UART_Error_t UART_enReadUntil(const UART_Channel_t enChannel, uint8_t * const pu
         }
     }
 
-    // CRITICAL_SECTION_END();
-
     (*pu32Count) = Local_u32Count;
 
+    /* if UARTs empty, return buffer empty error  */
     if(Local_u32Count == 0)
     {
         return UART_ERROR_BUFFER_EMPTY;
@@ -468,7 +478,6 @@ UART_Error_t UART_enReadLine(const UART_Channel_t enChannel, uint8_t * const pu8
 
 UART_Error_t UART_enWrite(const UART_Channel_t enChannel, uint8_t const * const pu8Data, uint32_t u32Len, uint32_t * const pu32Count)
 {
-    RingBuffer_Counter_t Local_u32Count = 0;
     UART_t * Local_psUart = NULL;
 
 #ifdef DEBUG
@@ -498,21 +507,23 @@ UART_Error_t UART_enWrite(const UART_Channel_t enChannel, uint8_t const * const 
 
 #endif /*  DEBUG  */
 
-    // CRITICAL_SECTION_BEGIN();
+    /* write bytes to UART TX buffer */
+    RingBuffer_enPutItems(Local_psUart->tx_buffer, pu8Data, u32Len, pu32Count);
 
-    RingBuffer_enPutItems(Local_psUart->tx_buffer, pu8Data, u32Len, &Local_u32Count);
-
-    // CRITICAL_SECTION_END();
-
-    (*pu32Count) = Local_u32Count;
-
-    if(Local_u32Count == 0)
+    /**
+     *  If UART TX vuffer is full, return buffer full error,
+     *  else if UART TXE interrupt is not enabed, enable UART TXE interrupt 
+     * */
+    if((*pu32Count) == 0)
     {
         return UART_ERROR_BUFFER_FULL;
     }
     else
     {
-        __HAL_UART_ENABLE_IT(Local_psUart->handle, UART_IT_TXE);
+        if(!__HAL_UART_GET_IT_SOURCE(Local_psUart->handle, UART_IT_TXE))
+        {
+            __HAL_UART_ENABLE_IT(Local_psUart->handle, UART_IT_TXE);
+        }
     }
 
     return UART_ERROR_NONE;
@@ -523,6 +534,8 @@ UART_Error_t UART_enWrite(const UART_Channel_t enChannel, uint8_t const * const 
 UART_Error_t UART_enWriteBlocking(const UART_Channel_t enChannel, uint8_t const * const pu8Data, uint32_t u32Len)
 {
     UART_t * Local_psUart = NULL;
+    uint32_t Local_u32TransmitCount = 0;
+    uint32_t Local_u32WriteCount;
 
 #ifdef DEBUG
 
@@ -551,8 +564,20 @@ UART_Error_t UART_enWriteBlocking(const UART_Channel_t enChannel, uint8_t const 
 
 #endif /*  DEBUG  */
 
+    /* write data to UART TX buffer and wait for the data to be transmitted */
+    while(Local_u32TransmitCount < u32Len)
+    {
+        UART_enWrite(
+            enChannel, 
+            &pu8Data[Local_u32TransmitCount], 
+            u32Len - Local_u32TransmitCount, 
+            &Local_u32WriteCount
+        );
 
-    HAL_UART_Transmit(Local_psUart->handle, pu8Data, (uint16_t)u32Len, HAL_MAX_DELAY);
+        Local_u32TransmitCount += Local_u32WriteCount;
+
+        UART_enFlushTx(enChannel);
+    }
 
     return UART_ERROR_NONE;
 }
@@ -581,6 +606,7 @@ UART_Error_t UART_enFlushTx(const UART_Channel_t enChannel)
 
 #endif /*  DEBUG  */
 
+    /* wait until all bytes in UART TX buffer are transmitted (UART TX buffer is empty) */
     do
     {
         RingBuffer_enItemCount(Local_psUart->tx_buffer, &Local_u32RemainingBytes);
@@ -613,6 +639,7 @@ UART_Error_t UART_enFlushRx(const UART_Channel_t enChannel)
 
 #endif /*  DEBUG  */
 
+    /* reset UART RX buffer (UART RX buffer becomes empty) */
     RingBuffer_enReset(Local_psUart->rx_buffer);
 
     return UART_ERROR_NONE;
@@ -622,7 +649,15 @@ UART_Error_t UART_enFlushRx(const UART_Channel_t enChannel)
 
 UART_Error_t UART_enUpdateChannel(UART_Channel_t enChannel)
 {
-    (void)enChannel;
+
+#if defined(UART_MINIMAL_INTERRUPTS)
+
+#else
+
+    UNUSED(enChannel);
+
+#endif /* defined(UART_MINIMAL_INTERRUPTS) */
+
     return UART_ERROR_NONE;
 }
 
@@ -633,17 +668,32 @@ static void UART_vidIrqCallback(UART_t const * const psUart)
     RingBuffer_Error_t Local_enError;
     uint8_t Local_u8Byte;
 
-    /*  check error flags   */
+    /**
+     * Handle UART errors
+     * 
+     * If any error flag is set (NE, FE, PE or ORE):
+     *   - clear error flags (read UART->SR then UART->DR)
+     * */
     if(__HAL_UART_GET_FLAG(psUart->handle, UART_FLAG_PE)
             || __HAL_UART_GET_FLAG(psUart->handle, UART_FLAG_NE)
             || __HAL_UART_GET_FLAG(psUart->handle, UART_FLAG_FE)
             || __HAL_UART_GET_FLAG(psUart->handle, UART_FLAG_ORE))
     {
-        __HAL_UART_CLEAR_OREFLAG(psUart->handle);
+        Local_u8Byte = (uint8_t)psUart->handle->Instance->DR;
         return;
     }
 
-    /*  check TX empty flag   */
+    /**
+     * Handle UART TX
+     * 
+     * If UART->TXE flag is set (TXE flag is set when UART TX is enabled, and after a byte is transmitted from UART->DR) and
+     * If UART->TXEI (TX empty interrupt) is enabled (enabled in UART_enWrite()):
+     *   - If UART->tx_buffer has data bytes (not empty):
+     *     - ready byte from UART->tx_buffer and send it
+     * 
+     *   - else (UART->tx_buffer is empty):
+     *     - disable UART->TXEI (TX empty interrupt)
+     * */
     if(__HAL_UART_GET_IT_SOURCE(psUart->handle, UART_IT_TXE) && __HAL_UART_GET_FLAG(psUart->handle, UART_FLAG_TXE))
     {
         Local_enError = RingBuffer_enGetItem(psUart->tx_buffer, &Local_u8Byte);
@@ -657,7 +707,14 @@ static void UART_vidIrqCallback(UART_t const * const psUart)
         }
     }
 
-    /*  check RX not empty flag   */
+    /**
+     * Handle UART RX
+     * 
+     * If UART->RXNE flag is set (when a byte is received on UART) and
+     * If UART->RXNEI (RX not empty interrupt):
+     *   - read byte from UART->DR 
+     *   - put byte into UART->rx_buffer
+     * */
     if(__HAL_UART_GET_IT_SOURCE(psUart->handle, UART_IT_RXNE) && __HAL_UART_GET_FLAG(psUart->handle, UART_FLAG_RXNE))
     {
         Local_u8Byte = (uint8_t)psUart->handle->Instance->DR;
