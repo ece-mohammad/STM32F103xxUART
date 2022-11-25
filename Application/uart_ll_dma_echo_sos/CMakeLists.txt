@@ -1,10 +1,10 @@
 include_guard(DIRECTORY)
 
-include(cmake/st_hal.cmake)
+include(cmake/st_ll.cmake)
 include(cmake/stm32f103cbtx.cmake)
 include(cmake/gcc-arm.cmake)
 
-set(EXECUTABLE UART_HAL_ECHO)
+set(EXECUTABLE UART_LL_DMA_ECHO_SOS)
 
 #
 # List of source files to compile
@@ -13,22 +13,25 @@ set(APP_SOURCES
     # Put here your source files, one in each line, relative to CMakeLists.txt file location
 
     # application source files
-    ${PROJECT_PATH}/Application/uart_hal_echo/Src/main.c
-    ${PROJECT_PATH}/Application/uart_hal_echo/Src/gpio.c
-    ${PROJECT_PATH}/Application/uart_hal_echo/Src/usart.c
-    ${PROJECT_PATH}/Application/uart_hal_echo/Src/stm32f1xx_it.c
-    ${PROJECT_PATH}/Application/uart_hal_echo/Src/syscalls.c
-    ${PROJECT_PATH}/Application/uart_hal_echo/Src/sysmem.c
-    ${PROJECT_PATH}/Application/uart_hal_echo/Src/system_stm32f1xx.c
+    ${PROJECT_PATH}/Application/uart_ll_dma_echo_sos/Src/main.c
+    ${PROJECT_PATH}/Application/uart_ll_dma_echo_sos/Src/gpio.c
+    ${PROJECT_PATH}/Application/uart_ll_dma_echo_sos/Src/usart.c
+    ${PROJECT_PATH}/Application/uart_ll_dma_echo_sos/Src/stm32f1xx_it.c
+    ${PROJECT_PATH}/Application/uart_ll_dma_echo_sos/Src/syscalls.c
+    ${PROJECT_PATH}/Application/uart_ll_dma_echo_sos/Src/sysmem.c
+    ${PROJECT_PATH}/Application/uart_ll_dma_echo_sos/Src/system_stm32f1xx.c
     
     # modules source files
     ${PROJECT_PATH}/Modules/buffer/ring_buffer.c
+
+    ${PROJECT_PATH}/Middleware/SimpleOS/simple_os/simple_os.c
     
     # uart source files
-    ${PROJECT_PATH}/Modules/serial/uart/hal/uart.c
+    ${PROJECT_PATH}/Modules/serial/uart/ll_dma/uart_ll_dma.c
 
     # HAL libraries source files (from st_hal.cmake)
     ${HAL_DRIVERS_C_SOURCES}
+    ${HAL_DRIVERS_DMA_C_SOURCES}
 
     ${STARTUP_CODE_SRC}
 )
@@ -41,10 +44,10 @@ set(APP_INCLUDE_PATHS
     # Put here your include dirs, one in each line, relative to CMakeLists.txt file location
 
     # application include paths
-    ${PROJECT_PATH}/Application/uart_hal_echo/Inc
+    ${PROJECT_PATH}/Application/uart_ll_dma_echo/Inc
 
     # configurations include paths
-    ${PROJECT_PATH}/Config/hal
+    ${PROJECT_PATH}/Config/ll_dma
     
     # modules include paths
     ${PROJECT_PATH}/Modules

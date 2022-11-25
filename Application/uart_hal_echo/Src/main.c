@@ -29,7 +29,7 @@
 #include "main.h"
 #include "gpio.h"
 
-#include "hal/board_config.h"
+#include "board_config.h"
 #include "serial/uart/uart.h"
 
 /* Private typedef --------------------------------------------------------- */

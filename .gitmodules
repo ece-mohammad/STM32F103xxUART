@@ -1,0 +1,3 @@
+[submodule "Middlewares/SimpleOS"]
+	path = Middlewares/SimpleOS
+	url = git@github.com:ece-mohammad/SimpleOS.git

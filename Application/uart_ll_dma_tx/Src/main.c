@@ -32,7 +32,7 @@
 #include "main.h"
 #include "gpio.h"
 
-#include "ll_dma/board_config.h"
+#include "board_config.h"
 #include "serial/uart/uart.h"
 
 /* Private typedef --------------------------------------------------------- */
