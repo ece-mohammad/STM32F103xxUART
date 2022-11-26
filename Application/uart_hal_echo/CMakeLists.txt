@@ -43,9 +43,6 @@ set(APP_INCLUDE_PATHS
     # application include paths
     ${PROJECT_PATH}/Application/uart_hal_echo/Inc
 
-    # configurations include paths
-    ${PROJECT_PATH}/Config/hal
-    
     # modules include paths
     ${PROJECT_PATH}/Modules
 
@@ -93,6 +90,16 @@ target_link_options(${EXECUTABLE} PRIVATE
 # Execute post-build to print size
 add_custom_command(TARGET ${EXECUTABLE} POST_BUILD
     COMMAND ${CMAKE_SIZE} $<TARGET_FILE:${EXECUTABLE}>
+)
+
+# Generate disassembly
+add_custom_command(TARGET ${EXECUTABLE} POST_BUILD
+    COMMAND ${CMAKE_OBJDUMP} -x -s -S -d -e  $<TARGET_FILE:${EXECUTABLE}> > ${EXECUTABLE}.dump
+)
+
+# Generate hexdump
+add_custom_command(TARGET ${EXECUTABLE} POST_BUILD
+    COMMAND ${CMAKE_OBJDUMP} -D $<TARGET_FILE:${EXECUTABLE}> > ${EXECUTABLE}.dis
 )
 
 # Convert output to hex and binary

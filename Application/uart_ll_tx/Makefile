@@ -99,7 +99,6 @@ ASM_SOURCES =  \
 
 APP_C_INCUDES = \
 Inc \
-$(CONFIG_DIR) \
 
 
 MODULES_C_INCLUDES = \

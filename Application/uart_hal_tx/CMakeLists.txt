@@ -43,9 +43,6 @@ set(APP_INCLUDE_PATHS
     # application include paths
     ${PROJECT_PATH}/Application/uart_hal_tx/Inc
 
-    # configurations include paths
-    ${PROJECT_PATH}/Config/hal
-    
     # modules include paths
     ${PROJECT_PATH}/Modules
 

@@ -17,7 +17,7 @@
  * If enabled, UART_vidUpdateChannel() must be called periodically with a
  * high enough rate to handle data transmission/reception without any data loss
  * */
-/* #define CONF_UART_MINIMAL_INTERRUPTS */
+#define CONF_UART_MINIMAL_INTERRUPTS
 
 /**
  * UART interrupts priorities
@@ -41,17 +41,17 @@
  * */
 #ifdef CONF_UART_ENABLE_CHANNEL_1
 #define CONF_UART_ENABLE_CHANNEL_1_TX
-#define CONF_UART_ENABLE_CHANNEL_1_RX
+/* #define CONF_UART_ENABLE_CHANNEL_1_RX */
 #endif /*  CONF_UART_ENABLE_CHANNEL_1  */
 
 #ifdef CONF_UART_ENABLE_CHANNEL_2
 #define CONF_UART_ENABLE_CHANNEL_2_TX
-#define CONF_UART_ENABLE_CHANNEL_2_RX
+/* #define CONF_UART_ENABLE_CHANNEL_2_RX */
 #endif /*  CONF_UART_ENABLE_CHANNEL_2  */
 
 #ifdef CONF_UART_ENABLE_CHANNEL_3
 #define CONF_UART_ENABLE_CHANNEL_3_TX
-#define CONF_UART_ENABLE_CHANNEL_3_RX
+/* #define CONF_UART_ENABLE_CHANNEL_3_RX */
 #endif /*  CONF_UART_ENABLE_CHANNEL_3  */
 
 /* -------------------------------------------------------------------------- */

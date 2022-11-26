@@ -56,7 +56,7 @@
                     "${workspaceFolder}/Drivers/STM32F1xx_HAL_Driver/Src"
                 ]
             },
-            "configurationProvider": "ms-vscode.makefile-tools"
+            "configurationProvider": "ms-vscode.cmake-tools"
         },
         {
             "name": "UART_HAL_ECHO (ARM GCC)",
@@ -112,7 +112,7 @@
                     "${workspaceFolder}/Drivers/STM32F1xx_HAL_Driver/Src"
                 ]
             },
-            "configurationProvider": "ms-vscode.makefile-tools"
+            "configurationProvider": "ms-vscode.cmake-tools"
         },
         {
             "name": "UART_LL_TX (ARM GCC)",
@@ -168,7 +168,7 @@
                     "${workspaceFolder}/Drivers/STM32F1xx_HAL_Driver/Src"
                 ]
             },
-            "configurationProvider": "ms-vscode.makefile-tools"
+            "configurationProvider": "ms-vscode.cmake-tools"
         },
         {
             "name": "UART_LL_ECHO (ARM GCC)",
@@ -224,7 +224,7 @@
                     "${workspaceFolder}/Drivers/STM32F1xx_HAL_Driver/Src"
                 ]
             },
-            "configurationProvider": "ms-vscode.makefile-tools"
+            "configurationProvider": "ms-vscode.cmake-tools"
         },
         {
             "name": "UART_LL_DMA_TX (ARM GCC)",
@@ -280,7 +280,7 @@
                     "${workspaceFolder}/Drivers/STM32F1xx_HAL_Driver/Src"
                 ]
             },
-            "configurationProvider": "ms-vscode.makefile-tools"
+            "configurationProvider": "ms-vscode.cmake-tools"
         },
         {
             "name": "UART_LL_DMA_ECHO (ARM GCC)",
@@ -336,7 +336,7 @@
                     "${workspaceFolder}/Drivers/STM32F1xx_HAL_Driver/Src"
                 ]
             },
-            "configurationProvider": "ms-vscode.makefile-tools"
+            "configurationProvider": "ms-vscode.cmake-tools"
         }
     ],
     "version": 4

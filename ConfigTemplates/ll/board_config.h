@@ -8,9 +8,25 @@
 #ifndef __BOARD_CONFIG_H__
 #define __BOARD_CONFIG_H__
 
+
+/* -------------------------------------------------------------------------- */
+/* -------------------------------- SimpleOS -------------------------------- */
+/* -------------------------------------------------------------------------- */
+
+#define CONF_OS_TICK_RATE_HZ    1000
+#define CONF_OS_TASK_COUNT      8
+
+
 /* -------------------------------------------------------------------------- */
 /* ---------------------------------- UART ---------------------------------- */
 /* -------------------------------------------------------------------------- */
+
+/**
+ * Switch to enable/disable handling data TX/RX inside interrupts
+ * If enabled, UART_vidUpdateChannel() must be called periodically with a
+ * high enough rate to handle data transmission/reception without any data loss
+ * */
+#define CONF_UART_MINIMAL_INTERRUPTS
 
 /**
  * UART interrupts priorities

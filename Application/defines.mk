@@ -1,9 +1,6 @@
 # root build directory
 ROOT_BUILD_DIR = ../../build
 
-# configurations root directory
-CONFIG_DIR = ../../Config
-
 # common C files for all applications in Application directory
 APP_COMMON_C_SOURCES = \
 

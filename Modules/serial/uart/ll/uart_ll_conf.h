@@ -10,9 +10,13 @@
 
 /* -------------------------------------------------------------------------- */
 
-#include "ll/board_config.h"
+#include "board_config.h"
 
 /* -------------------------------------------------------------------------- */
+
+#ifdef CONF_UART_MINIMAL_INTERRUPTS
+#define UART_MINIMAL_INTERRUPTS
+#endif  /* CONF_UART_MINIMAL_INTERRUPTS */
 
 /**
  * UART interrupts priorities

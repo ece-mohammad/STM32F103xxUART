@@ -11,7 +11,7 @@
 #define __UART_UART_CONF_H__
 
 
-#include "hal/board_config.h"
+#include "board_config.h"
 
 /* -------------------------------------------------------------------------- */
 

@@ -338,10 +338,14 @@ static const UART_t UART_3 = {
 
         .dma_context = &UART_3_DMA_Context,
 
+#ifdef UART_ENABLE_CHANNEL_3_TX
         .dma_tx_size = UART_DMA_CHANNEL_3_TX_SIZE,
+#endif /*  UART_ENABLE_CHANNEL_3_TX  */
 
+#ifdef UART_ENABLE_CHANNEL_3_RX
         .dma_rx_buffer = UART_DMA_Channel_3_RX_Data,
         .dma_rx_buffer_size = UART_DMA_CHANNEL_3_RX_BUFFER_SIZE,
+#endif /*  UART_ENABLE_CHANNEL_3_RX  */
 
         .dma_tx_is_active_flag_tc = LL_DMA_IsActiveFlag_TC2,
 
@@ -552,7 +556,7 @@ UART_Error_t UART_enInitialize(const UART_Channel_t enChannel, UART_Conf_t const
         (void)0;
     }
 
-    if((enChannel >= UART_CHANNEL_COUNT) || IS_NULLPTR((Local_psUart = UART_asHandles[enChannel])))
+    if((enChannel >= UART_CHANNEL_COUNT) || IS_NULLPTR((Local_psUart = (UART_t *)UART_asHandles[enChannel])))
     {
         return UART_ERROR_INVALID_CHANNEL;
     }
@@ -595,9 +599,7 @@ UART_Error_t UART_enInitialize(const UART_Channel_t enChannel, UART_Conf_t const
     if(Local_psUart->tx_size)
     {
         Local_enBufferError = RingBuffer_enInit(Local_psUart->tx_buffer, Local_psUart->tx_data, Local_psUart->tx_size);
-#ifdef DEBUG
         assert_param(Local_enBufferError == RING_BUFFER_ERROR_NONE);
-#endif
 
         /*
          * initialize DMA for UART TX
@@ -640,9 +642,7 @@ UART_Error_t UART_enInitialize(const UART_Channel_t enChannel, UART_Conf_t const
     if(Local_psUart->rx_size)
     {
         Local_enBufferError = RingBuffer_enInit(Local_psUart->rx_buffer, Local_psUart->rx_data, Local_psUart->rx_size);
-#ifdef DEBUG
         assert_param(Local_enBufferError == RING_BUFFER_ERROR_NONE);
-#endif
 
         LL_GPIO_SetPinMode(Local_psUart->gpio_port, Local_psUart->rx_pin, LL_GPIO_MODE_INPUT);
         LL_GPIO_SetPinPull(Local_psUart->gpio_port, Local_psUart->rx_pin, LL_GPIO_PULL_UP);
@@ -738,7 +738,7 @@ UART_Error_t UART_enDeInitialize(const UART_Channel_t enChannel)
 
 #ifdef DEBUG
 
-    if((enChannel >= UART_CHANNEL_COUNT) || IS_NULLPTR((Local_psUart = UART_asHandles[enChannel])))
+    if((enChannel >= UART_CHANNEL_COUNT) || IS_NULLPTR((Local_psUart = (UART_t *)UART_asHandles[enChannel])))
     {
         return UART_ERROR_INVALID_CHANNEL;
     }
@@ -842,7 +842,7 @@ UART_Error_t UART_enReadUntil(const UART_Channel_t enChannel, uint8_t * const pu
     uint32_t Local_u32Count = 0;
     UART_t * Local_psUart = NULL;
     uint8_t Local_u8Byte = 0;
-    RingBuffer_Error_t Local_enBufferError;
+    RingBuffer_Error_t Local_enBufferError = RING_BUFFER_ERROR_NONE;
 
 #ifdef DEBUG
 
@@ -871,8 +871,6 @@ UART_Error_t UART_enReadUntil(const UART_Channel_t enChannel, uint8_t * const pu
 
 #endif /*  DEBUG  */
 
-    // CRITICAL_SECTION_BEGIN();
-
     /*  read bytes from rx buffer  */
     while((Local_u32Count < u32Len) && ((Local_enBufferError = RingBuffer_enGetItem(Local_psUart->rx_buffer, &Local_u8Byte)) == RING_BUFFER_ERROR_NONE))
     {
@@ -887,8 +885,6 @@ UART_Error_t UART_enReadUntil(const UART_Channel_t enChannel, uint8_t * const pu
             (void)0;
         }
     }
-
-    // CRITICAL_SECTION_END();
 
     (*pu32Count) = Local_u32Count;
 
@@ -974,7 +970,7 @@ UART_Error_t UART_enWrite(const UART_Channel_t enChannel, uint8_t const * const 
 UART_Error_t UART_enWriteBlocking(const UART_Channel_t enChannel, uint8_t const * const pu8Data, uint32_t u32Len)
 {
     UART_t * Local_psUart = NULL;
-    uint8_t * Local_pu8Data = pu8Data;
+    uint8_t * Local_pu8Data = (uint8_t *)pu8Data;
 
 #ifdef DEBUG
 
@@ -1060,7 +1056,6 @@ UART_Error_t UART_enFlushTx(const UART_Channel_t enChannel)
 UART_Error_t UART_enFlushRx(const UART_Channel_t enChannel)
 {
     UART_t * Local_psUart = NULL;
-    uint32_t Local_u32RemainingBytes = 0;
 
 #ifdef DEBUG
 

@@ -10,7 +10,7 @@
 #include <stdint.h>
 #include <main.h>
 
-// #include "board_config.h"
+#include "board_config.h"
 
 #include "serial/uart/uart.h"
 #include "debug.h"
