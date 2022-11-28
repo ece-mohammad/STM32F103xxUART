@@ -1,12 +1,11 @@
 include_guard(GLOBAL)
 
+# path to applications directories, relative to Applications directory
 set(APPLICATIONS 
-    "UART_HAL_ECHO"
-    "UART_HAL_TX"
-    "UART_LL_ECHO"
-    "UART_LL_ECHO_SOS"
-    "UART_LL_TX"
-    "UART_LL_DMA_ECHO"
-    # "UART_LL_DMA_ECHO_SOS"
-    "UART_LL_DMA_TX"
+    "uart_hal_echo"
+    "uart_hal_tx"
+    "uart_ll_echo"
+    "uart_ll_tx"
+    "uart_ll_dma_echo"
+    "uart_ll_dma_tx"
 )

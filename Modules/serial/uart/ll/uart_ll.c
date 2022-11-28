@@ -1,5 +1,5 @@
 /******************************************************************************
- * @file      port_uart.c
+ * @file      uart_ll.c
  * @brief
  * @version   1.0
  * @date      Apr 3, 2022
@@ -23,21 +23,22 @@
  * UART structure
  * */
 typedef struct {
-        USART_TypeDef * uart_handle;    /**<    */
-        GPIO_TypeDef * gpio_port;       /**<    */
-        uint32_t rx_pin;                /**<    */
-        uint32_t tx_pin;                /**<    */
+        USART_TypeDef * uart_handle;    /**<  UART handle, used by ST LL drivers to interface with UART  */
 
-        RingBuffer_t * rx_buffer;       /**<    */
-        RingBuffer_t * tx_buffer;       /**<    */
+        GPIO_TypeDef * gpio_port;       /**<  pointer to UART TX/RX pins GPIO port, to initialize UART TX/RX gpio pins  */
+        uint32_t rx_pin;                /**<  UART RX gpio pin  */
+        uint32_t tx_pin;                /**<  UART TX gpio pin  */
 
-        uint8_t * rx;                   /**<    */
-        uint8_t * tx;                   /**<    */
+        RingBuffer_t * rx_buffer;       /**<  pointer to UART RX buffer  */
+        RingBuffer_t * tx_buffer;       /**<  pointer to UART TX buffer  */
 
-        uint32_t rx_size;               /**<    */
-        uint32_t tx_size;               /**<    */
-                                        /**<    */
-        IRQn_Type uart_irq;             /**<    */
+        uint8_t * rx;                   /**<  pointer to UART RX buffer array  */
+        uint8_t * tx;                   /**<  pointer to UART TX buffer array  */
+
+        uint32_t rx_size;               /**<  size of UART RX buffer  */
+        uint32_t tx_size;               /**<  size of UART TX buffer  */
+
+        IRQn_Type uart_irq;             /**<  UART IRQn (IRQ number), used to enable/disable UART interrupts in NVIC  */
 } UART_t;
 
 /* -------------------------------------------------------------------------- */
@@ -75,7 +76,6 @@ static const UART_t UART_1 = {
 #endif /*  UART_ENABLE_CHANNEL_1_TX  */
 
         .uart_irq = USART1_IRQn,
-
 };
 
 #endif  /*  UART_ENABLE_CHANNEL_1   */
@@ -154,7 +154,6 @@ static const UART_t UART_3 = {
 #endif /*  UART_ENABLE_CHANNEL_3_TX  */
 
         .uart_irq = USART3_IRQn,
-
 };
 
 #endif  /*  UART_ENABLE_CHANNEL_3   */
@@ -271,6 +270,8 @@ UART_Error_t UART_enInitialize(const UART_Channel_t enChannel, UART_Conf_t const
     LL_USART_ConfigAsyncMode(Local_psUart->uart_handle);
     LL_USART_Enable(Local_psUart->uart_handle);
 
+#if !defined(UART_MINIMAL_INTERRUPTS)
+
     /*  enable UART RX/Error interrupts if RX mode is enabled  */
     if((psConf->TransferDirection & LL_USART_DIRECTION_RX) == LL_USART_DIRECTION_RX)
     {
@@ -281,6 +282,8 @@ UART_Error_t UART_enInitialize(const UART_Channel_t enChannel, UART_Conf_t const
 
     NVIC_SetPriority(Local_psUart->uart_irq, NVIC_EncodePriority(NVIC_GetPriorityGrouping(), UART_INTERRUPT_PREEMPTION_PRIORITY, UART_INTERRUPT_GROUPING_PRIORITY));
     NVIC_EnableIRQ(Local_psUart->uart_irq);
+
+#endif /* !defined(UART_MINIMAL_INTERRUPTS) */
 
     return UART_ERROR_NONE;
 }
@@ -599,7 +602,76 @@ UART_Error_t UART_enFlushRx(const UART_Channel_t enChannel)
 
 UART_Error_t UART_enUpdateChannel(UART_Channel_t enChannel)
 {
+
+#if defined(UART_MINIMAL_INTERRUPTS)
+
+    UART_t * Local_psUart = NULL;
+    uint32_t Local_u32Status;
+    uint8_t Local_u8Byte;
+    RingBuffer_Error_t Local_enBufferError;
+
+#ifdef DEBUG
+
+    if((enChannel >= UART_CHANNEL_COUNT) || IS_NULLPTR(Local_psUart = (UART_t*)UART_asHandles[enChannel]))
+    {
+        return UART_ERROR_INVALID_CHANNEL;
+    }
+
+#else
+
+    Local_psUart = UART_asHandles[enChannel];
+
+#endif /*  DEBUG  */
+
+    /**
+     * Handle UART error handling:
+     * - Error flags (in USARTx->SR) are cleared by: 
+     *   1- reading UARTx->SR register, followed by
+     *   2- reading USARTx->DR register
+     * */
+    Local_u32Status = Local_psUart->uart_handle->SR;
+
+    /**
+     * Handle UART RX
+     * 
+     * If UART->RXNE flag is set (when a byte is received on UART):
+     *   - read byte from UART->DR 
+     *   - If no parity error:
+     *     - put byte into UART->rx_buffer
+     *   - Else:
+     *     - Ignore read byte with parity error
+     * */
+    if((Local_u32Status & USART_SR_RXNE) == USART_SR_RXNE)
+    {
+        Local_u8Byte = LL_USART_ReceiveData8(Local_psUart->uart_handle);
+        if((Local_u32Status & USART_SR_PE) != USART_SR_PE)
+        {
+            RingBuffer_enPutItem(Local_psUart->rx_buffer, &Local_u8Byte);
+        }
+    }
+
+    /**
+     * Handle UART TX
+     * 
+     * If UART->TXE flag is set (TXE flag is set when UART TX is enabled, and after a byte is transmitted from UART->DR):
+     *   - If UART->tx_buffer has data bytes (not empty):
+     *     - ready byte from UART->tx_buffer and send it (writing to DR clears TXE flag)
+     * */
+    if((Local_u32Status & USART_SR_TXE) == USART_SR_TXE)
+    {
+        Local_enBufferError = RingBuffer_enGetItem(Local_psUart->tx_buffer, &Local_u8Byte);
+        if(Local_enBufferError == RING_BUFFER_ERROR_NONE)
+        {
+            LL_USART_TransmitData8(Local_psUart->uart_handle, Local_u8Byte);
+        }
+    }
+
+#else
+
     (void)enChannel;
+
+#endif /* defined(UART_MINIMAL_INTERRUPTS) */
+
     return UART_ERROR_NONE;
 }
 
@@ -607,19 +679,50 @@ UART_Error_t UART_enUpdateChannel(UART_Channel_t enChannel)
 
 static void UART_vidIrqCallback(const UART_t * const psUart)
 {
-    RingBuffer_Error_t Local_enBufferError;
+    uint32_t Local_u32Status;
     uint8_t Local_u8Byte;
+    RingBuffer_Error_t Local_enBufferError;
 
-    /*  check error flags   */
-    if ((LL_USART_IsEnabledIT_ERROR(psUart->uart_handle) && LL_USART_IsActiveFlag_ORE(psUart->uart_handle))
-            || (LL_USART_IsEnabledIT_PE(psUart->uart_handle) && LL_USART_IsActiveFlag_PE(psUart->uart_handle)))
+    /**
+     * Handle UART error handling:
+     * - Error flags (in USARTx->SR) are cleared by: 
+     *   1- reading UARTx->SR register, followed by
+     *   2- reading USARTx->DR register
+     * */
+    Local_u32Status = psUart->uart_handle->SR;
+
+    /**
+     * Handle UART RX
+     * 
+     * If UART->RXNE flag is set (when a byte is received on UART) and
+     * If UART->RXNEI (RX not empty interrupt):
+     *   - read byte from UART->DR 
+     *   - If no parity error:
+     *     - put byte into UART->rx_buffer
+     *   - Else:
+     *     - Ignore read byte with parity error
+     * */
+    if(LL_USART_IsEnabledIT_RXNE(psUart->uart_handle) && ((Local_u32Status & USART_SR_RXNE) == USART_SR_RXNE))
     {
-        LL_USART_ClearFlag_ORE(psUart->uart_handle);
-        return;
+        Local_u8Byte = LL_USART_ReceiveData8(psUart->uart_handle);
+        if((Local_u32Status & USART_SR_PE) != USART_SR_PE)
+        {
+            RingBuffer_enPutItem(psUart->rx_buffer, &Local_u8Byte);
+        }
     }
 
-    /*  check TX empty flag   */
-    if(LL_USART_IsEnabledIT_TXE(psUart->uart_handle) && LL_USART_IsActiveFlag_TXE(psUart->uart_handle))
+    /**
+     * Handle UART TX
+     * 
+     * If UART->TXE flag is set (TXE flag is set when UART TX is enabled, and after a byte is transmitted from UART->DR) and
+     * If UART->TXEI (TX empty interrupt) is enabled (enabled in UART_enWrite()):
+     *   - If UART->tx_buffer has data bytes (not empty):
+     *     - ready byte from UART->tx_buffer and send it
+     * 
+     *   - else (UART->tx_buffer is empty):
+     *     - disable UART->TXEI (TX empty interrupt)
+     * */
+    if(LL_USART_IsEnabledIT_TXE(psUart->uart_handle) && ((Local_u32Status & USART_SR_TXE) == USART_SR_TXE))
     {
         Local_enBufferError = RingBuffer_enGetItem(psUart->tx_buffer, &Local_u8Byte);
         if(Local_enBufferError == RING_BUFFER_ERROR_NONE)
@@ -630,13 +733,6 @@ static void UART_vidIrqCallback(const UART_t * const psUart)
         {
             LL_USART_DisableIT_TXE(psUart->uart_handle);
         }
-    }
-
-    /*  check RX not empty flag   */
-    if(LL_USART_IsEnabledIT_RXNE(psUart->uart_handle) && LL_USART_IsActiveFlag_RXNE(psUart->uart_handle))
-    {
-        Local_u8Byte = LL_USART_ReceiveData8(psUart->uart_handle);
-        RingBuffer_enPutItem(psUart->rx_buffer, &Local_u8Byte);
     }
 }
 

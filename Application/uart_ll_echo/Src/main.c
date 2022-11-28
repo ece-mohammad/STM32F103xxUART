@@ -7,11 +7,11 @@
  *              and UART3.
  *              MCU configurations:
  *              <ul>
- *              </ul>
  *                <li>System Clokc: 32 MHz</li>
  *                <li>UARTx (1, 2, 3) baudrate: 9600 up to 921600 bps,
  *                  configurable using @ref UART_BAUDRATE</li>
- *                <li>Uses configurations from Config/ll/boad_config.h</li>
+ *              </ul>
+ * 
  * @author      Mohammad Mohsen <kuro.ece@gmail.com>
  * @brief 
  * @version     1.0
@@ -46,17 +46,13 @@ typedef struct line_t
 
 /* Private define ------------------------------------------------------------*/
 
-/**
- * @brief UART received data
- */
-#define TEST_UART_BAUDRATE  921600
 
 /**
  * @brief Max baudrate for all UART channels @ clock speed Fclk = 16 MHz (BRR = 1)
  */
 #define MAX_BAUDRATE        921600
 
-#if TEST_UART_BAUDRATE > MAX_BAUDRATE
+#if CONF_UART_BAUDRATE > MAX_BAUDRATE
 #error Maximum alowed baudrate is 921600
 #endif
 
@@ -68,16 +64,16 @@ typedef struct line_t
 /* Private variables ---------------------------------------------------------*/
 
 /**
- * @brief UART configurations
+ * @brief UAT configurations
  */
 const UART_Conf_t uart_conf = {
-        .BaudRate               = TEST_UART_BAUDRATE,
-        .DataWidth              = CONF_DEBUG_UART_DATASIZE,
-        .Parity                 = CONF_DEBUG_UART_PARITY,
-        .StopBits               = CONF_DEBUG_UART_STOPBITS,
-        .TransferDirection      = LL_USART_DIRECTION_TX_RX,
-        .HardwareFlowControl    = LL_USART_HWCONTROL_NONE,
-        .OverSampling           = LL_USART_OVERSAMPLING_16,
+    .BaudRate               = CONF_UART_BAUDRATE,
+    .DataWidth              = CONF_UART_DATASIZE,
+    .Parity                 = CONF_UART_PARITY,
+    .StopBits               = CONF_UART_STOPBITS,
+    .TransferDirection      = CONF_UART_DIRECTION,
+    .HardwareFlowControl    = CONF_UART_HWCONTROL,
+    .OverSampling           = CONF_UART_OVERSAMPLING,
 };
 
 /**
@@ -240,8 +236,6 @@ int main(void)
     /* System interrupt init*/
     NVIC_SetPriorityGrouping(NVIC_PRIORITYGROUP_4);
 
-    /* SysTick_IRQn interrupt configuration */
-    NVIC_SetPriority(SysTick_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(),15, 0));
 
     /** NOJTAG: JTAG-DP Disabled and SW-DP Enabled
      */
@@ -250,12 +244,19 @@ int main(void)
     /* Configure the system clock */
     SystemClock_Config();
 
+#if defined(CONF_UART_MINIMAL_INTERRUPTS)
+
     /*  Initialize SysTick to generate interrupts   */
     SysTick->LOAD  = (uint32_t)((16000000 / 1000) - 1UL);       /* set reload register */
     SysTick->VAL   = 0UL;                                       /* Load the SysTick Counter Value */
     SysTick->CTRL  = SysTick_CTRL_CLKSOURCE_Msk |
             SysTick_CTRL_TICKINT_Msk |                   /* Enable the Systick interrupt */
             SysTick_CTRL_ENABLE_Msk;                   /* Enable the Systick Timer */
+            
+    /* SysTick_IRQn interrupt configuration */
+    NVIC_SetPriority(SysTick_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(),15, 0));
+            
+#endif /* defined(CONF_UART_MINIMAL_INTERRUPTS) */
 
     /* Initialize all configured peripherals */
     MX_GPIO_Init();
@@ -280,12 +281,16 @@ int main(void)
     }
 }
 
+#if defined(CONF_UART_MINIMAL_INTERRUPTS)
+
 void SysTick_Handler(void)
 {
     UART_enUpdateChannel(UART_CHANNEL_1);
     UART_enUpdateChannel(UART_CHANNEL_2);
     UART_enUpdateChannel(UART_CHANNEL_3);
 }
+
+#endif /* defined(CONF_UART_MINIMAL_INTERRUPTS) */
 
 /**
  * @brief  This function is executed in case of error occurrence.

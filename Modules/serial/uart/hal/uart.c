@@ -297,18 +297,21 @@ UART_Error_t UART_enInitialize(const UART_Channel_t enChannel, UART_Conf_t const
         return UART_ERROR_NOT_INIT;
     }
 
+#if !defined(UART_MINIMAL_INTERRUPTS)
 
     /*  enable UART RX/Error interrupts if RX mode is enabled  */
     if((psConf->Mode & UART_MODE_RX) == UART_MODE_RX)
     {
         __HAL_UART_ENABLE_IT(Local_psUart->handle, UART_IT_RXNE);
-        __HAL_UART_ENABLE_IT(Local_psUart->handle, UART_IT_PE);
-        __HAL_UART_ENABLE_IT(Local_psUart->handle, UART_IT_ERR);
+        // __HAL_UART_ENABLE_IT(Local_psUart->handle, UART_IT_PE);
+        // __HAL_UART_ENABLE_IT(Local_psUart->handle, UART_IT_ERR);
     }
 
     /*  enable UART interrupts  */
     HAL_NVIC_SetPriority(Local_psUart->uart_irq, UART_INTERRUPT_PREEMPTION_PRIORITY, UART_INTERRUPT_GROUPING_PRIORITY);
     HAL_NVIC_EnableIRQ(Local_psUart->uart_irq);
+
+#endif /* !defined(UART_MINIMAL_INTERRUPTS) */
 
     return UART_ERROR_NONE;
 }
@@ -652,6 +655,71 @@ UART_Error_t UART_enUpdateChannel(UART_Channel_t enChannel)
 
 #if defined(UART_MINIMAL_INTERRUPTS)
 
+    UART_t * Local_psUart = NULL;
+    RingBuffer_Error_t Local_enError;
+    uint8_t Local_u8Byte;
+    uint32_t Local_u32Status;
+
+#ifdef DEBUG
+
+    if ((enChannel >= UART_CHANNEL_COUNT) || IS_NULLPTR(Local_psUart = (UART_t *)UART_asHandles[enChannel]))
+    {
+        return UART_ERROR_INVALID_CHANNEL;
+    }
+    else
+    {
+        (void)0;
+    }
+
+#else
+
+    Local_psUart = UART_asHandles[enChannel];
+
+#endif /*  DEBUG  */
+
+    /**
+     * Handle UART error handling:
+     * - Error flags (in USARTx->SR) are cleared by: 
+     *   1- reading UARTx->SR register, followed by
+     *   2- reading USARTx->DR register
+     * */
+    Local_u32Status = Local_psUart->handle->Instance->SR;
+
+    /**
+     * Handle UART RX
+     * 
+     * If UART->RXNE flag is set (when a byte is received on UART):
+     *   - read byte from UART->DR 
+     *   - If no parity error:
+     *     - put byte into UART->rx_buffer
+     *   - Else:
+     *     - Ignore read byte with parity error
+     * */
+    if((Local_u32Status & UART_FLAG_RXNE) == UART_FLAG_RXNE)
+    {
+        Local_u8Byte = (uint8_t)Local_psUart->handle->Instance->DR;
+        if((Local_u32Status & UART_FLAG_PE) != UART_FLAG_PE)
+        {
+            Local_enError = RingBuffer_enPutItem(Local_psUart->rx_buffer, &Local_u8Byte);
+        }
+    }
+
+    /**
+     * Handle UART TX
+     * 
+     * If UART->TXE flag is set (TXE flag is set when UART TX is enabled, and after a byte is transmitted from UART->DR):
+     *   - If UART->tx_buffer has data bytes (not empty):
+     *     - ready byte from UART->tx_buffer and send it (writing to DR clears TXE flag)
+     * */
+    if((Local_u32Status & UART_FLAG_TXE) == UART_FLAG_TXE)
+    {
+        Local_enError = RingBuffer_enGetItem(Local_psUart->tx_buffer, &Local_u8Byte);
+        if(Local_enError == RING_BUFFER_ERROR_NONE)
+        {
+            Local_psUart->handle->Instance->DR = Local_u8Byte;
+        }
+    }
+
 #else
 
     UNUSED(enChannel);
@@ -667,20 +735,34 @@ static void UART_vidIrqCallback(UART_t const * const psUart)
 {
     RingBuffer_Error_t Local_enError;
     uint8_t Local_u8Byte;
+    uint32_t Local_u32Status;
 
     /**
-     * Handle UART errors
-     * 
-     * If any error flag is set (NE, FE, PE or ORE):
-     *   - clear error flags (read UART->SR then UART->DR)
+     * Handle UART error handling:
+     * - Error flags (in USARTx->SR) are cleared by: 
+     *   1- reading UARTx->SR register, followed by
+     *   2- reading USARTx->DR register
      * */
-    if(__HAL_UART_GET_FLAG(psUart->handle, UART_FLAG_PE)
-            || __HAL_UART_GET_FLAG(psUart->handle, UART_FLAG_NE)
-            || __HAL_UART_GET_FLAG(psUart->handle, UART_FLAG_FE)
-            || __HAL_UART_GET_FLAG(psUart->handle, UART_FLAG_ORE))
+    Local_u32Status = psUart->handle->Instance->SR;
+
+    /**
+     * Handle UART RX
+     * 
+     * If UART->RXNE flag is set (when a byte is received on UART) and
+     * If UART->RXNEI (RX not empty interrupt):
+     *   - read byte from UART->DR 
+     *   - If no parity error:
+     *     - put byte into UART->rx_buffer
+     *   - Else:
+     *     - Ignore read byte with parity error
+     * */
+    if(__HAL_UART_GET_IT_SOURCE(psUart->handle, UART_IT_RXNE) && ((Local_u32Status & UART_FLAG_RXNE) == UART_FLAG_RXNE))
     {
         Local_u8Byte = (uint8_t)psUart->handle->Instance->DR;
-        return;
+        if((Local_u32Status & UART_FLAG_PE) != UART_FLAG_PE)
+        {
+            Local_enError = RingBuffer_enPutItem(psUart->rx_buffer, &Local_u8Byte);
+        }
     }
 
     /**
@@ -694,31 +776,17 @@ static void UART_vidIrqCallback(UART_t const * const psUart)
      *   - else (UART->tx_buffer is empty):
      *     - disable UART->TXEI (TX empty interrupt)
      * */
-    if(__HAL_UART_GET_IT_SOURCE(psUart->handle, UART_IT_TXE) && __HAL_UART_GET_FLAG(psUart->handle, UART_FLAG_TXE))
+    if(__HAL_UART_GET_IT_SOURCE(psUart->handle, UART_IT_TXE) && ((Local_u32Status & UART_FLAG_TXE) == UART_FLAG_TXE))
     {
         Local_enError = RingBuffer_enGetItem(psUart->tx_buffer, &Local_u8Byte);
-        if(Local_enError == RING_BUFFER_ERROR_EMPTY)
-        {
-            __HAL_UART_DISABLE_IT(psUart->handle, UART_IT_TXE);
-        }
-        else
+        if(Local_enError == RING_BUFFER_ERROR_NONE)
         {
             psUart->handle->Instance->DR = Local_u8Byte;
         }
-    }
-
-    /**
-     * Handle UART RX
-     * 
-     * If UART->RXNE flag is set (when a byte is received on UART) and
-     * If UART->RXNEI (RX not empty interrupt):
-     *   - read byte from UART->DR 
-     *   - put byte into UART->rx_buffer
-     * */
-    if(__HAL_UART_GET_IT_SOURCE(psUart->handle, UART_IT_RXNE) && __HAL_UART_GET_FLAG(psUart->handle, UART_FLAG_RXNE))
-    {
-        Local_u8Byte = (uint8_t)psUart->handle->Instance->DR;
-        Local_enError = RingBuffer_enPutItem(psUart->rx_buffer, &Local_u8Byte);
+        else
+        {
+            __HAL_UART_DISABLE_IT(psUart->handle, UART_IT_TXE);
+        }
     }
 }
 

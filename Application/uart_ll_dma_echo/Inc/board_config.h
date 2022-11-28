@@ -13,11 +13,11 @@
 /* -------------------------------------------------------------------------- */
 
 /**
- * Switch to enable/disable handling DMA TX/RX inside interrupts
- * If disabled, UART_vidUpdateChannel() must be called periodically with a
+ * Switch to enable/disable handling data TX/RX inside interrupts
+ * If enabled, UART_vidUpdateChannel() must be called periodically with a
  * high enough rate to handle data transmission/reception without any data loss
  * */
-#define CONF_UART_DMA_MINIMAL_INTERRUPTS
+/* #define CONF_UART_MINIMAL_INTERRUPTS */
 
 /**
  * UART interrupts priorities
@@ -117,13 +117,14 @@
 /* -------------------------------------------------------------------------- */
 
 /**
- * Debug UART configurations
+ * UART configurations
  * */
-#define CONF_DEBUG_UART_CHANNEL         UART_CHANNEL_1
-#define CONF_DEBUG_UART_BAUDRATE        115200
-#define CONF_DEBUG_UART_PARITY          LL_USART_PARITY_NONE
-#define CONF_DEBUG_UART_DATASIZE        LL_USART_DATAWIDTH_8B
-#define CONF_DEBUG_UART_STOPBITS        LL_USART_STOPBITS_1
-
+#define CONF_UART_BAUDRATE          921600
+#define CONF_UART_DATASIZE          LL_USART_DATAWIDTH_8B
+#define CONF_UART_PARITY            LL_USART_PARITY_NONE
+#define CONF_UART_STOPBITS          LL_USART_STOPBITS_1
+#define CONF_UART_DIRECTION         LL_USART_DIRECTION_TX_RX
+#define CONF_UART_HWCONTROL         LL_USART_HWCONTROL_NONE
+#define CONF_UART_OVERSAMPLING      LL_USART_OVERSAMPLING_16
 
 #endif /* __BOARD_CONFIG_H__ */

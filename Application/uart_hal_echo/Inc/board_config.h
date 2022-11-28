@@ -16,8 +16,10 @@
  * Switch to enable/disable handling data TX/RX inside interrupts
  * If enabled, UART_vidUpdateChannel() must be called periodically with a
  * high enough rate to handle data transmission/reception without any data loss
+ * 
+ * NOTE this #define switch is not enabled for this application
  * */
-#define CONF_UART_MINIMAL_INTERRUPTS
+/* #define CONF_UART_MINIMAL_INTERRUPTS */
 
 /**
  * UART interrupts priorities
@@ -101,13 +103,15 @@
 /* -------------------------------------------------------------------------- */
 
 /**
- * Debug UART configurations
+ * UART configurations
  * */
-#define CONF_DEBUG_UART_CHANNEL         UART_CHANNEL_1
-#define CONF_DEBUG_UART_BAUDRATE        115200
-#define CONF_DEBUG_UART_PARITY          UART_PARITY_NONE
-#define CONF_DEBUG_UART_DATASIZE        UART_WORDLENGTH_8B
-#define CONF_DEBUG_UART_STOPBITS        UART_STOPBITS_1
+#define CONF_UART_BAUDRATE              921600
+#define CONF_UART_DATASIZE              UART_WORDLENGTH_8B
+#define CONF_UART_PARITY                UART_PARITY_NONE
+#define CONF_UART_STOPBITS              UART_STOPBITS_1
+#define CONF_UART_MODE                  UART_MODE_TX_RX
+#define CONF_UART_HWCONTROL             UART_HWCONTROL_NONE
+#define CONF_UART_OVERSAMPLING          UART_OVERSAMPLING_16
 
 /* -------------------------------------------------------------------------- */
 

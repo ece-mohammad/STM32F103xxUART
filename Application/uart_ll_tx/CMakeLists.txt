@@ -92,6 +92,16 @@ add_custom_command(TARGET ${EXECUTABLE} POST_BUILD
     COMMAND ${CMAKE_SIZE} $<TARGET_FILE:${EXECUTABLE}>
 )
 
+# Generate disassembly
+add_custom_command(TARGET ${EXECUTABLE} POST_BUILD
+    COMMAND ${CMAKE_OBJDUMP} -x -s -S -d -e  $<TARGET_FILE:${EXECUTABLE}> > ${EXECUTABLE}.dump
+)
+
+# Generate hexdump
+add_custom_command(TARGET ${EXECUTABLE} POST_BUILD
+    COMMAND ${CMAKE_OBJDUMP} -D $<TARGET_FILE:${EXECUTABLE}> > ${EXECUTABLE}.dis
+)
+
 # Convert output to hex and binary
 add_custom_command(TARGET ${EXECUTABLE} POST_BUILD
     COMMAND ${CMAKE_OBJCOPY} -O ihex $<TARGET_FILE:${EXECUTABLE}> ${EXECUTABLE}.hex

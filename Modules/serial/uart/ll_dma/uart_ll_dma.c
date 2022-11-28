@@ -1,5 +1,5 @@
 /******************************************************************************
- * @file      port_uart.c
+ * @file      uart_ll_dma.c
  * @brief
  * @version   1.0
  * @date      Apr 3, 2022
@@ -42,54 +42,54 @@ typedef struct uart_dma_context_t
  * UART structure
  * */
 typedef struct uart_t {
-        // UART RX buffer
+        /* UART RX buffer */
         RingBuffer_t * rx_buffer;   /**<  UART RX ring buffer, to store received bytes.
                                           Bytes are read using UART_enRead(), UART_enReadUntil(), UART_enReadLine() functions  */
         uint8_t * rx_data;          /**<  RX ring buffer data  */
         uint32_t rx_size;           /**<  RX ring buffer data size  */
 
-        // UART TX buffer
+        /* UART TX buffer */
         RingBuffer_t * tx_buffer;   /**<  UART TX ring buffer, stores bytes to be transmitted over UART  */
         uint8_t * tx_data;          /**<  TX ring buffer data  */
         uint32_t tx_size;           /**<  TX ring buffer data size  */
 
         USART_TypeDef * uart_handle;    /**<  UART handle, used to interface with UART peripheral (USART1, USART2, USART3, ...)  */
 
-        // UART GPIO
+        /* UART GPIO */
         GPIO_TypeDef * gpio_port;   /**<  UART Pins' GPIO port handle, used to configure UART TX/RX pins (GPIOA< GPIOP, ...)  */
         uint32_t rx_pin;            /**<  UART RX pin number (LL_GPIO_PIN_X)  */
         uint32_t tx_pin;            /**<  UART TX pin number (LL_GPIO_PIN_x)  */
 
-        // UART DMA
+        /* UART DMA */
         DMA_TypeDef * dma_handle;   /**<  UART DMA handle, used to interface with DMA peripheral used with UART  */
         uint32_t dma_rx_channel;    /**<  UART DMA channel number associated with UART RX request  */
         uint32_t dma_tx_channel;    /**<  UART DMA channel number associated with UART TX request  */
 
         UART_DMA_Context_t * dma_context;   /**<  UART DMA TX/RX context  */
 
-        // UART DMA RX context
+        /* UART DMA RX context */
         uint8_t * dma_rx_buffer;        /**<  UART DMA RX temporary buffer to store received data by DMA  */
         uint32_t  dma_rx_buffer_size;   /**<  UART DMA temporary buffer size  */
 
-        // UART DMA TX context
+        /* UART DMA TX context */
         uint32_t dma_tx_size;       /**<  maximum number of bytes DMA sends in each transfer  */
 
-        // DMA RX flags (LL_DMA_IsActiveFlag_XX)
+        /* DMA RX flags (LL_DMA_IsActiveFlag_XX) */
         uint32_t (*dma_rx_is_active_flag_tc)(DMA_TypeDef *);    /**<  DMA RX Get Transmit Complete (TC) flag function (LL_DMA_IsActiveFlag_TCx())  */
         uint32_t (*dma_rx_is_active_flag_ht)(DMA_TypeDef *);    /**<  DMA RX Get Transmit Half-complete (HT) flag function (LL_DMA_IsActiveFlag_HTx())  */
 
-        // DMA TX flags (LL_DMA_IsActiveFlag_XX)
+        /* DMA TX flags (LL_DMA_IsActiveFlag_XX) */
         uint32_t (*dma_tx_is_active_flag_tc)(DMA_TypeDef *);    /**<  DMA TX Get Transmit Complete (TC) flag function (LL_DMA_IsActiveFlag_TCx())  */
 
-        // UART DMA RX clear flag (LL_DMA_ClearFLag_XX)
+        /* UART DMA RX clear flag (LL_DMA_ClearFLag_XX) */
         void (*dma_rx_clearflag_tc)(DMA_TypeDef *);     /**<  DMA RX clear Transmit Complete (TC) flag (LL_DMA_ClearFlag_TCx())  */
         void (*dma_rx_clearflag_ht)(DMA_TypeDef *);     /**<  DMA RX clear Transmit Half-complete (HT) flag (LL_DMA_ClearFlag_HTx())  */
         void (*dma_rx_clearflag_te)(DMA_TypeDef *);     /**<  DMA RX clear Transmit Error (TE) flag (LL_DMA_ClearFlag_TEx())  */
 
-        // DMA TX clear flag (LL_DMA_ClearFLag_XX)
+        /* DMA TX clear flag (LL_DMA_ClearFLag_XX) */
         void (*dma_tx_clearflag_tc)(DMA_TypeDef *);     /**<  DMA TX clear Transmit Complete (TC) flag (LL_DMA_ClearFlag_TCx())  */
 
-        // UART & DMA interrupts
+        /* UART & DMA interrupts */
         IRQn_Type uart_irqn;        /**<  UART channel's IRQn (USARTx_IRQn)  */
         IRQn_Type dma_rx_irqn;      /**<  DMA RX channel IRQn (DMA_Channelx_IRQn)  */
         IRQn_Type dma_tx_irqn;      /**<  DMA TX channel IRQn (DMA_Channelx_IRQn)  */
@@ -699,7 +699,6 @@ UART_Error_t UART_enInitialize(const UART_Channel_t enChannel, UART_Conf_t const
     }
 
     /*  Initialize UART channel  */
-    // LL_USART_DeInit(Local_psUart->uart_handle);
     if(LL_USART_Init(Local_psUart->uart_handle, (LL_USART_InitTypeDef *)psConf) != SUCCESS)
     {
         LL_USART_DeInit(Local_psUart->uart_handle);

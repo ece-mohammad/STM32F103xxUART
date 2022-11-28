@@ -7,11 +7,11 @@
  *              and UART3.
  *              MCU configurations:
  *              <ul>
- *              </ul>
  *                <li>System Clokc: 16 MHz</li>
  *                <li>UARTx (1, 2, 3) baudrate: 9600 up to 921600 bps,
  *                  configurable using @ref UART_BAUDRATE</li>
- *                <li>Uses configurations from Config/hal/boad_config.h</li>
+ *              </ul>
+ * 
  * @author      Mohammad Mohsen <kuro.ece@gmail.com>
  * @brief 
  * @version     1.0
@@ -48,16 +48,11 @@ typedef struct tx_data_t
 /* Private define ---------------------------------------------------------- */
 
 /**
- * @brief UART baudrate
- */
-#define UART_BAUDRATE           921600
-
-/**
  * @brief Max baudrate for all UART channels @ clock speed Fclk = 16 MHz (BRR = 1)
  * */
 #define MAX_BAUDRATE            921600
 
-#if UART_BAUDRATE > MAX_BAUDRATE
+#if CONF_UART_BAUDRATE > MAX_BAUDRATE
 #error Maximum alowed baudrate is 921600
 #endif
 
@@ -69,13 +64,13 @@ typedef struct tx_data_t
  * @brief UAT configurations
  */
 const UART_Conf_t uart_conf = {
-    .BaudRate       = UART_BAUDRATE,
-    .WordLength     = CONF_DEBUG_UART_DATASIZE,
-    .Parity         = CONF_DEBUG_UART_PARITY,
-    .StopBits       = CONF_DEBUG_UART_STOPBITS,
-    .Mode           = UART_MODE_TX_RX,
-    .HwFlowCtl      = UART_HWCONTROL_NONE,
-    .OverSampling   = UART_OVERSAMPLING_16,
+    .BaudRate       = CONF_UART_BAUDRATE,
+    .WordLength     = CONF_UART_DATASIZE,
+    .Parity         = CONF_UART_PARITY,
+    .StopBits       = CONF_UART_STOPBITS,
+    .Mode           = CONF_UART_MODE,
+    .HwFlowCtl      = CONF_UART_HWCONTROL,
+    .OverSampling   = CONF_UART_OVERSAMPLING,
 };
 
 static TX_Data_t tx_data [UART_CHANNEL_COUNT] = {0};
