@@ -29,10 +29,10 @@ typedef struct uart_dma_context_t
         volatile uint32_t  dma_rx_read_pos;         /**<  UART DMA RX buffer read position  */
         volatile uint32_t dma_tx_curent_transfer;   /**<  number of bytes DMA is currently sending on UART TX pin  */
 
-#ifdef UART_DMA_MINIMAL_INTERRUPTS
+#ifdef UART_MINIMAL_INTERRUPTS
         volatile uint32_t dma_tx_complete_flag;
         volatile uint32_t dma_rx_pending_flag;
-#endif /*  UART_DMA_MINIMAL_INTERRUPTS  */
+#endif /*  UART_MINIMAL_INTERRUPTS  */
 
 } UART_DMA_Context_t;
 
@@ -99,10 +99,10 @@ typedef struct uart_t {
         volatile uint32_t  dma_rx_read_pos;      /**<  UART DMA RX buffer read position  */
         volatile uint32_t dma_tx_curent_transfer;       /**<  number of bytes DMA is currently sending on UART TX pin  */
 
-#ifdef UART_DMA_MINIMAL_INTERRUPTS
+#ifdef UART_MINIMAL_INTERRUPTS
         volatile uint32_t dma_tx_complete_flag;
         volatile uint32_t dma_rx_pending_flag;
-#endif /*  UART_DMA_MINIMAL_INTERRUPTS  */
+#endif /*  UART_MINIMAL_INTERRUPTS  */
 
 #endif
 
@@ -399,7 +399,7 @@ static const UART_t * const UART_asHandles[UART_CHANNEL_COUNT] = {
  *
  * @callergraph
  *
- * @param [in, out] psUart  : pointer to UART chanel's UART_t
+ * @param [in] psUart  : pointer to UART chanel's UART_t
  *
  * @return void
  *
@@ -411,7 +411,7 @@ static inline void UART_DMA_vidReceiveData(const UART_t * const psUart);
  *
  * @callergraph
  *
- * @param [in, out] psUart  : pointer to UART chanel's UART_t
+ * @param [in] psUart  : pointer to UART chanel's UART_t
  *
  * @return void
  *
@@ -439,7 +439,7 @@ static inline void UART_DMA_vidReceiveData(const UART_t * const psUart)
 
     if(current_read_pos > old_read_pos)
     {
-        /*
+        /**
          * if current_read_position > old_read_position :
          * - some bytes were received and current position didn't warp around in the buffer
          * - Add items between old an new read positions to UART RX ring buffer
@@ -453,7 +453,7 @@ static inline void UART_DMA_vidReceiveData(const UART_t * const psUart)
     }
     else
     {
-        /*
+        /**
          * if current_read_position < old_read_position :
          * - some bytes were received and current position warped around in the buffer
          * - Add items between old read positions and end of DMA RX buffer
@@ -488,27 +488,26 @@ static inline void UART_DMA_vidTransmitData(const UART_t * const psUart)
     RingBuffer_Counter_t Local_u32BlockSize;
     RingBuffer_Item_t * Local_pu8ReadAddress;
 
-
     /*  check that no DMA transmission is ongoing (remaining transfers == 0)  */
     if(psUart->dma_context->dma_tx_curent_transfer > 0)
     {
-        /*  DMA transfer is ongoing, UART_enWrite() was called before DMA finishes */
+        /*  DMA transfer is ongoing, UART_enWrite() was called before DMA finishes its current transfer */
         return;
     }
 
     /*  get number of available bytes in TX buffer */
     RingBuffer_enBlockReadCount(psUart->tx_buffer, &Local_u32BlockSize);
 
-    /*
-     * - When called from UART_enWrite() this condition will always be true
-     * - When called from DMA_IRQHandler() this condition will always be true until TX buffer is empty
+    /**
+     * - When called from UART_enWrite() (and DMA has no ongoing transfers) this condition will always be true
+     * - When called from DMA_IRQHandler() (DMA just finished a transfer) this condition will always be true until TX buffer is empty
      * */
     if(Local_u32BlockSize == 0)
     {
         return;
     }
 
-    /*
+    /**
      * limit block size to a small-ish size so that the TX buffer
      * can have free space as soon as possible.
      * Since DMA TX C interrupt is responsible for skipping transfered bytes from TX buffer,
@@ -1083,7 +1082,7 @@ UART_Error_t UART_enFlushRx(const UART_Channel_t enChannel)
 UART_Error_t UART_enUpdateChannel(UART_Channel_t enChannel)
 {
 
-#ifdef UART_DMA_MINIMAL_INTERRUPTS
+#ifdef UART_MINIMAL_INTERRUPTS
 
     UART_t * Local_psUart = NULL;
     RingBuffer_Counter_t Local_u32SkipCount;
@@ -1140,6 +1139,17 @@ static void UART_vidIrqCallback(const UART_t * const psUart)
 {
     RingBuffer_Error_t Local_enBufferError;
     uint8_t Local_u8Byte;
+    uint32_t Local_u32Satus = psUart->uart_handle->SR;
+
+#if 0
+
+    if ((LL_USART_IsEnabledIT_ERROR(psUart->uart_handle) && ((Local_u32Satus & USART_SR_ORE) == USART_SR_ORE)) ||
+        (LL_USART_IsEnabledIT_PE(psUart->uart_handle) && ((Local_u32Satus & USART_SR_PE) == USART_SR_PE)))
+    {
+
+    }
+
+#endif /* 0 */
 
     /*  check error flags   */
     if((LL_USART_IsEnabledIT_ERROR(psUart->uart_handle) ||
@@ -1153,16 +1163,15 @@ static void UART_vidIrqCallback(const UART_t * const psUart)
     }
 
     /*  check IDLE flag  */
-    if(LL_USART_IsEnabledIT_IDLE(psUart->uart_handle) &&
-            LL_USART_IsActiveFlag_IDLE(psUart->uart_handle))
+    if(LL_USART_IsEnabledIT_IDLE(psUart->uart_handle) && ((Local_u32Satus & USART_SR_IDLE) == USART_SR_IDLE))
     {
         LL_USART_ClearFlag_IDLE(psUart->uart_handle);
 
-#ifdef UART_DMA_MINIMAL_INTERRUPTS
+#ifdef UART_MINIMAL_INTERRUPTS
         psUart->dma_context->dma_rx_pending_flag = 1;
 #else
         UART_DMA_vidReceiveData(psUart);
-#endif /*  UART_DMA_MINIMAL_INTERRUPTS  */
+#endif /*  UART_MINIMAL_INTERRUPTS  */
     }
 
     /*  check TX empty flag   */
@@ -1191,8 +1200,7 @@ static void UART_vidIrqCallback(const UART_t * const psUart)
 
 static void UART_DMA_TX_IRQHandler(const UART_t * const psUart)
 {
-
-    /*
+    /**
      * Check if TC interrupt is enabled (it should be enabled in UART_vidInitialize() right after DMA TX channel initialization)
      * and DMA TC flag is active
      * */
@@ -1202,7 +1210,7 @@ static void UART_DMA_TX_IRQHandler(const UART_t * const psUart)
         /* clear DMA TC flag  */
         psUart->dma_tx_clearflag_tc(psUart->dma_handle);
 
-#ifdef UART_DMA_MINIMAL_INTERRUPTS
+#ifdef UART_MINIMAL_INTERRUPTS
         psUart->dma_context->dma_tx_complete_flag = 1;
 #else
         RingBuffer_Counter_t Local_u32SkipCount;
@@ -1215,7 +1223,7 @@ static void UART_DMA_TX_IRQHandler(const UART_t * const psUart)
 
         /*  Send more data from TX buffer (if there are any)  */
         UART_DMA_vidTransmitData(psUart);
-#endif /* UART_DMA_MINIMAL_INTERRUPTS  */
+#endif /* UART_MINIMAL_INTERRUPTS  */
     }
 }
 
@@ -1228,11 +1236,11 @@ static void UART_DMA_RX_IRQHandler(const UART_t * const psUart)
     {
         psUart->dma_rx_clearflag_ht(psUart->dma_handle);
 
-#ifdef UART_DMA_MINIMAL_INTERRUPTS
+#ifdef UART_MINIMAL_INTERRUPTS
         psUart->dma_context->dma_rx_pending_flag = 1;
 #else
         UART_DMA_vidReceiveData(psUart);
-#endif /*  UART_DMA_MINIMAL_INTERRUPTS  */
+#endif /*  UART_MINIMAL_INTERRUPTS  */
     }
 
     if(LL_DMA_IsEnabledIT_TC(psUart->dma_handle, psUart->dma_rx_channel) &&
@@ -1240,11 +1248,11 @@ static void UART_DMA_RX_IRQHandler(const UART_t * const psUart)
     {
         psUart->dma_rx_clearflag_tc(psUart->dma_handle);
 
-#ifdef UART_DMA_MINIMAL_INTERRUPTS
+#ifdef UART_MINIMAL_INTERRUPTS
         psUart->dma_context->dma_rx_pending_flag = 1;
 #else
         UART_DMA_vidReceiveData(psUart);
-#endif /*  UART_DMA_MINIMAL_INTERRUPTS  */
+#endif /*  UART_MINIMAL_INTERRUPTS  */
     }
 }
 

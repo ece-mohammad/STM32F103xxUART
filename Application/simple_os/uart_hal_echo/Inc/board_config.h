@@ -8,14 +8,19 @@
 #ifndef __BOARD_CONFIG_H__
 #define __BOARD_CONFIG_H__
 
-
 /* -------------------------------------------------------------------------- */
 /* -------------------------------- SimpleOS -------------------------------- */
 /* -------------------------------------------------------------------------- */
 
+/**
+ * @brief SimpleOS tick rate
+ */
 #define CONF_OS_TICK_RATE_HZ    1000
-#define CONF_OS_TASK_COUNT      8
 
+/**
+ * @brief SimpleOS task count, maximum number of tasks 
+ */
+#define CONF_OS_TASK_COUNT      2
 
 /* -------------------------------------------------------------------------- */
 /* ---------------------------------- UART ---------------------------------- */
@@ -40,8 +45,8 @@
  * UART channels enable/disable
  * */
 #define CONF_UART_ENABLE_CHANNEL_1
-#define CONF_UART_ENABLE_CHANNEL_2   
-#define CONF_UART_ENABLE_CHANNEL_3   
+#define CONF_UART_ENABLE_CHANNEL_2 
+#define CONF_UART_ENABLE_CHANNEL_3 
 
 /* -------------------------------------------------------------------------- */
 
@@ -72,7 +77,7 @@
 #ifdef CONF_UART_ENABLE_CHANNEL_1
 
 #ifdef CONF_UART_ENABLE_CHANNEL_1_TX
-#define CONF_UART_CHANNEL_1_TX_BUFFER_SIZE       256
+#define CONF_UART_CHANNEL_1_TX_BUFFER_SIZE       49
 #endif  /*  CONF_UART_ENABLE_CHANNEL_1_TX  */
 
 #ifdef CONF_UART_ENABLE_CHANNEL_1_RX
@@ -84,7 +89,7 @@
 #ifdef CONF_UART_ENABLE_CHANNEL_2
 
 #ifdef CONF_UART_ENABLE_CHANNEL_2_TX
-#define CONF_UART_CHANNEL_2_TX_BUFFER_SIZE       256
+#define CONF_UART_CHANNEL_2_TX_BUFFER_SIZE       49
 #endif  /*  CONF_UART_ENABLE_CHANNEL_2_TX  */
 
 #ifdef CONF_UART_ENABLE_CHANNEL_2_RX
@@ -96,7 +101,7 @@
 #ifdef CONF_UART_ENABLE_CHANNEL_3
 
 #ifdef CONF_UART_ENABLE_CHANNEL_3_TX
-#define CONF_UART_CHANNEL_3_TX_BUFFER_SIZE       256
+#define CONF_UART_CHANNEL_3_TX_BUFFER_SIZE       49
 #endif  /*  CONF_UART_ENABLE_CHANNEL_3_TX  */
 
 #ifdef CONF_UART_ENABLE_CHANNEL_3_RX
@@ -112,7 +117,7 @@
 /**
  * UART configurations
  * */
-#define CONF_UART_BAUDRATE              921600
+#define CONF_UART_BAUDRATE              4800
 #define CONF_UART_DATASIZE              UART_WORDLENGTH_8B
 #define CONF_UART_PARITY                UART_PARITY_NONE
 #define CONF_UART_STOPBITS              UART_STOPBITS_1

@@ -19,9 +19,9 @@
  * If disabled, UART_vidUpdateChannel() must be called periodically with a
  * high enough rate to handle data transmission/reception without any data loss
  * */
-#ifdef CONF_UART_DMA_MINIMAL_INTERRUPTS
-#define UART_DMA_MINIMAL_INTERRUPTS
-#endif /*  CONF_UART_DMA_MINIMAL_INTERRUPTS  */
+#ifdef CONF_UART_MINIMAL_INTERRUPTS
+#define UART_MINIMAL_INTERRUPTS
+#endif /*  CONF_UART_MINIMAL_INTERRUPTS  */
 
 
 /**

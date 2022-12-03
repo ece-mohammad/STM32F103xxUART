@@ -307,7 +307,7 @@ UART_Error_t UART_enFlushRx(const UART_Channel_t enChannel);
 /**
  * @brief Update UART channel's TX/RX buffer
  *
- * @note Only useful when using uart_ll_dma.c with #UART_DMA_MINIMAL_INTERRUPTS enabled
+ * @note Only useful when using uart_ll_dma.c with #UART_MINIMAL_INTERRUPTS enabled
  *
  * @note Must be called regularly with a frequency to match UART baudrate and DMA TX/RX buffer size
  *

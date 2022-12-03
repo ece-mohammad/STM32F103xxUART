@@ -108,7 +108,7 @@
 /* -------------------------------------------------------------------------- */
 
 /**
- * Debug UART configurations
+ * UART configurations
  * */
 #define CONF_DEBUG_UART_CHANNEL         UART_CHANNEL_1
 #define CONF_DEBUG_UART_BAUDRATE        115200

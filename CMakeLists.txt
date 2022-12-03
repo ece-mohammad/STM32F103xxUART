@@ -57,15 +57,7 @@ set(COMPILER_DEFINITIONS
 # include applications
 include(${APPLICATIONS_DIR}/Applications.cmake)
 
-
 # include CMakeFiles for each application
 foreach(app ${APPLICATIONS})
-    message(Application: ${app})
-    
-    include(${APPLICATIONS_DIR}/${app}/CMakeLists.txt OPTIONAL RESULT_VARIABLE found)
-    
-    if(NOT found)
-        message(SEND_ERROR Couldn't find CMakeLists.txt for application: ${app})
-    endif()
-
+    add_subdirectory(${APPLICATIONS_DIR}/${app})
 endforeach()

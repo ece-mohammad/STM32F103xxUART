@@ -9,13 +9,6 @@
 #define __BOARD_CONFIG_H__
 
 /* -------------------------------------------------------------------------- */
-/* -------------------------------- SimpleOS -------------------------------- */
-/* -------------------------------------------------------------------------- */
-
-#define CONF_OS_TICK_RATE_HZ    1000
-#define CONF_OS_TASK_COUNT      8
-
-/* -------------------------------------------------------------------------- */
 /* ---------------------------------- UART ---------------------------------- */
 /* -------------------------------------------------------------------------- */
 
@@ -24,7 +17,7 @@
  * If disabled, UART_vidUpdateChannel() must be called periodically with a
  * high enough rate to handle data transmission/reception without any data loss
  * */
-#define CONF_UART_DMA_MINIMAL_INTERRUPTS
+#define UART_MINIMAL_INTERRUPTS
 
 /**
  * UART interrupts priorities

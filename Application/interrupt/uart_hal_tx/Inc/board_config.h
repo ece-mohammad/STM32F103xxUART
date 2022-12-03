@@ -8,25 +8,18 @@
 #ifndef __BOARD_CONFIG_H__
 #define __BOARD_CONFIG_H__
 
-
-/* -------------------------------------------------------------------------- */
-/* -------------------------------- SimpleOS -------------------------------- */
-/* -------------------------------------------------------------------------- */
-
-#define CONF_OS_TICK_RATE_HZ    1000
-#define CONF_OS_TASK_COUNT      8
-
-
 /* -------------------------------------------------------------------------- */
 /* ---------------------------------- UART ---------------------------------- */
 /* -------------------------------------------------------------------------- */
+
 
 /**
  * Switch to enable/disable handling data TX/RX inside interrupts
  * If enabled, UART_vidUpdateChannel() must be called periodically with a
  * high enough rate to handle data transmission/reception without any data loss
+ * 
  * */
-#define CONF_UART_MINIMAL_INTERRUPTS
+/* #define CONF_UART_MINIMAL_INTERRUPTS */
 
 /**
  * UART interrupts priorities
@@ -50,17 +43,17 @@
  * */
 #ifdef CONF_UART_ENABLE_CHANNEL_1
 #define CONF_UART_ENABLE_CHANNEL_1_TX
-#define CONF_UART_ENABLE_CHANNEL_1_RX
+/* #define CONF_UART_ENABLE_CHANNEL_1_RX */
 #endif /*  CONF_UART_ENABLE_CHANNEL_1  */
 
 #ifdef CONF_UART_ENABLE_CHANNEL_2
 #define CONF_UART_ENABLE_CHANNEL_2_TX
-#define CONF_UART_ENABLE_CHANNEL_2_RX
+/* #define CONF_UART_ENABLE_CHANNEL_2_RX */
 #endif /*  CONF_UART_ENABLE_CHANNEL_2  */
 
 #ifdef CONF_UART_ENABLE_CHANNEL_3
 #define CONF_UART_ENABLE_CHANNEL_3_TX
-#define CONF_UART_ENABLE_CHANNEL_3_RX
+/* #define CONF_UART_ENABLE_CHANNEL_3_RX */
 #endif /*  CONF_UART_ENABLE_CHANNEL_3  */
 
 /* -------------------------------------------------------------------------- */
