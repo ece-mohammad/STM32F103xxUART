@@ -363,7 +363,7 @@ int main(void)
             SysTick_CTRL_ENABLE_Msk;                            /* Enable the Systick Timer */
             
     /* SysTick_IRQn interrupt configuration */
-    NVIC_SetPriority(SysTick_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(),14, 0));
+    NVIC_SetPriority(SysTick_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(),15, 0));
     
     /* Initialize all configured peripherals */
     MX_GPIO_Init();

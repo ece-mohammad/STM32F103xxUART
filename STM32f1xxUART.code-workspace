@@ -16,7 +16,12 @@
 			"ring_buffer.h": "c",
 			"stm32f1xx_hal.h": "c",
 			"stm32f1xx_it.h": "c",
-			"uart_ll_conf.h": "c"
+			"uart_ll_conf.h": "c",
+			"utils.h": "c",
+			"string.h": "c",
+			"uart_conf.h": "c",
+			"simple_os.h": "c",
+			"uart_ll_dma_conf.h": "c"
 		},
 		"makefile.launchConfigurations": [
 			{
@@ -24,6 +29,8 @@
 				"binaryPath": "f:\\Projects\\EmbeddedProjects\\VSCode\\STM32f1xxUART\\build\\UART_HAL_ECHO\\Debug\\UART_HAL_ECHO.elf",
 				"binaryArgs": []
 			}
-		]
+		],
+		"cortex-debug.variableUseNaturalFormat": false,
+		"cortex-debug.showRTOS": true
 	}
 }

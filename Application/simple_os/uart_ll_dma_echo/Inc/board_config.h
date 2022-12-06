@@ -73,17 +73,28 @@
 /**
  * UART channels TX/RX buffer sizes, DMA TX size and RX buffer size
  * 
- * Calculating DMA RX buffer size
- * 
  * UART baudrate = 921600 bps
  * OR 921600 / 10 = 92160 Byte / sec
  * 
  * UART_enUpdateChannel() is called every 1 milli-second
  * 92160 / 1000 = 92.160 Bytes / milli-second 
- * OR ceil(92.16) = 92 Bytes / mili-second
+ * OR ceil(92.16) = 93 Bytes / mili-second
  * 
- * DMA half transfer and DMA transfer complete interrupts
- * DMA RX buffer = (93 * 2) = 186 bytes
+ * Calculating DMA RX buffer size
+ * 
+ *   DMA half transfer and DMA transfer complete flags
+ *   DMA RX buffer = (93 * 2) = 186 bytes
+ *   
+ *   Align buffer size w/ memory (4-byte aligned)
+ *   DMA RX buffer size = 188 bytes 
+ * 
+ * Calculating DMA TX buffer size
+ * 
+ *   DMA TC transfer complete flag
+ *   DMA TX buffer = (93 * 1) =  93 bytes
+ *   Align buffer size w/ memory (4-byte aligned)
+ *   DMA TX transfer size = 96 bytes 
+ * 
  * */
 #ifdef CONF_UART_ENABLE_CHANNEL_1
 

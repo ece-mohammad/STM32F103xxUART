@@ -17,7 +17,4 @@ set(APPLICATIONS
     "simple_os/uart_ll_tx"
     "simple_os/uart_ll_dma_echo"
     "simple_os/uart_ll_dma_tx"
-    
-    # freertos
-    # "free_rtos/uart_ll_dma_echo"
 )
