@@ -549,6 +549,7 @@ static inline void UART_DMA_vidFinalizeTransmission(const UART_t * const psUart)
 
 UART_Error_t UART_enInitialize(const UART_Channel_t enChannel, UART_Conf_t const * const psConf)
 {
+    UART_Conf_t Local_sUartConf = {0};
     UART_t * Local_psUart = NULL;
     RingBuffer_Error_t Local_enBufferError;
 
@@ -573,6 +574,9 @@ UART_Error_t UART_enInitialize(const UART_Channel_t enChannel, UART_Conf_t const
     Local_psUart = UART_asHandles[enChannel];
 
 #endif /*  DEBUG  */
+
+    memcpy(&Local_sUartConf, psConf, sizeof Local_sUartConf);
+    Local_sUartConf.TransferDirection = 0;
 
     /*  initialize channel's UART_t structure & enable its NVIC interrupt   */
 #if defined(UART_ENABLE_CHANNEL_1)
@@ -605,6 +609,8 @@ UART_Error_t UART_enInitialize(const UART_Channel_t enChannel, UART_Conf_t const
     /*  initialize UART TX GPIO pins, TX buffer and DMA TX channel  */
     if(Local_psUart->tx_size)
     {
+        Local_sUartConf.TransferDirection |= LL_USART_DIRECTION_TX;
+
         Local_enBufferError = RingBuffer_enInit(Local_psUart->tx_buffer, Local_psUart->tx_data, Local_psUart->tx_size);
         assert_param(Local_enBufferError == RING_BUFFER_ERROR_NONE);
 
@@ -639,11 +645,13 @@ UART_Error_t UART_enInitialize(const UART_Channel_t enChannel, UART_Conf_t const
         LL_DMA_SetPeriphAddress(Local_psUart->dma_handle, Local_psUart->dma_tx_channel, LL_USART_DMA_GetRegAddr(Local_psUart->uart_handle));
 
 #if !defined(UART_MINIMAL_INTERRUPTS)
+
         /*  enable DMA transfer complete interrupt  */
         LL_DMA_EnableIT_TC(Local_psUart->dma_handle, Local_psUart->dma_tx_channel);
 
         NVIC_SetPriority(Local_psUart->dma_tx_irqn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(), UART_INTERRUPT_PREEMPTION_PRIORITY, UART_INTERRUPT_GROUPING_PRIORITY));
         NVIC_EnableIRQ(Local_psUart->dma_tx_irqn);
+        
 #endif /* !defined(UART_MINIMAL_INTERRUPTS) */
 
     }
@@ -651,6 +659,8 @@ UART_Error_t UART_enInitialize(const UART_Channel_t enChannel, UART_Conf_t const
     /*  initialize UART RX GPIO pins, RX buffer and DMA RX channel  */
     if(Local_psUart->rx_size)
     {
+        Local_sUartConf.TransferDirection |= LL_USART_DIRECTION_RX;
+
         Local_enBufferError = RingBuffer_enInit(Local_psUart->rx_buffer, Local_psUart->rx_data, Local_psUart->rx_size);
         assert_param(Local_enBufferError == RING_BUFFER_ERROR_NONE);
 
@@ -693,18 +703,20 @@ UART_Error_t UART_enInitialize(const UART_Channel_t enChannel, UART_Conf_t const
         LL_DMA_SetDataLength(Local_psUart->dma_handle, Local_psUart->dma_rx_channel, Local_psUart->dma_rx_buffer_size);
 
 #if !defined(UART_MINIMAL_INTERRUPTS)
+
         /* enable DMA half complete/transdfere complete interrupts */
         LL_DMA_EnableIT_HT(Local_psUart->dma_handle, Local_psUart->dma_rx_channel);
         LL_DMA_EnableIT_TC(Local_psUart->dma_handle, Local_psUart->dma_rx_channel);
 
         NVIC_SetPriority(Local_psUart->dma_rx_irqn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(), UART_INTERRUPT_PREEMPTION_PRIORITY, UART_INTERRUPT_GROUPING_PRIORITY));
         NVIC_EnableIRQ(Local_psUart->dma_rx_irqn);
+
 #endif /* !defined(UART_MINIMAL_INTERRUPTS) */
 
         LL_DMA_EnableChannel(Local_psUart->dma_handle, Local_psUart->dma_rx_channel);
     }
 
-    if((psConf->TransferDirection & LL_USART_DIRECTION_TX) == LL_USART_DIRECTION_TX)
+    if((Local_sUartConf.TransferDirection & LL_USART_DIRECTION_TX) == LL_USART_DIRECTION_TX)
     {
         LL_GPIO_SetPinMode(Local_psUart->gpio_port, Local_psUart->tx_pin, LL_GPIO_MODE_ALTERNATE);
         LL_GPIO_SetPinOutputType(Local_psUart->gpio_port, Local_psUart->tx_pin, LL_GPIO_OUTPUT_PUSHPULL);
@@ -712,7 +724,7 @@ UART_Error_t UART_enInitialize(const UART_Channel_t enChannel, UART_Conf_t const
     }
 
     /*  Initialize UART channel  */
-    if(LL_USART_Init(Local_psUart->uart_handle, (LL_USART_InitTypeDef *)psConf) != SUCCESS)
+    if(LL_USART_Init(Local_psUart->uart_handle, &Local_sUartConf) != SUCCESS)
     {
         LL_USART_DeInit(Local_psUart->uart_handle);
         return UART_ERROR_NOT_INIT;
@@ -722,13 +734,13 @@ UART_Error_t UART_enInitialize(const UART_Channel_t enChannel, UART_Conf_t const
     LL_USART_Enable(Local_psUart->uart_handle);
 
     /*  enable USART DMA TX request  */
-    if((psConf->TransferDirection & LL_USART_DIRECTION_TX) == LL_USART_DIRECTION_TX)
+    if((Local_sUartConf.TransferDirection & LL_USART_DIRECTION_TX) == LL_USART_DIRECTION_TX)
     {
         LL_USART_EnableDMAReq_TX(Local_psUart->uart_handle);
     }
 
     /*  enable USART DMA RX request and IDLE interrupt  */
-    if((psConf->TransferDirection & LL_USART_DIRECTION_RX) == LL_USART_DIRECTION_RX)
+    if((Local_sUartConf.TransferDirection & LL_USART_DIRECTION_RX) == LL_USART_DIRECTION_RX)
     {
         LL_USART_EnableIT_IDLE(Local_psUart->uart_handle);
         LL_USART_EnableIT_ERROR(Local_psUart->uart_handle);
@@ -736,9 +748,11 @@ UART_Error_t UART_enInitialize(const UART_Channel_t enChannel, UART_Conf_t const
     }
 
 #if !defined(UART_MINIMAL_INTERRUPTS)
+
     /* enable UART interrupt (for IDLE and error interrupts) */
     NVIC_SetPriority(Local_psUart->uart_irqn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(), UART_INTERRUPT_PREEMPTION_PRIORITY, UART_INTERRUPT_GROUPING_PRIORITY));
     NVIC_EnableIRQ(Local_psUart->uart_irqn);
+
 #endif /* !defined(UART_MINIMAL_INTERRUPTS) */
 
     (void)Local_enBufferError;
@@ -771,8 +785,12 @@ UART_Error_t UART_enDeInitialize(const UART_Channel_t enChannel)
     if((LL_USART_GetTransferDirection(Local_psUart->uart_handle) & LL_USART_DIRECTION_RX) == LL_USART_DIRECTION_RX)
     {
         LL_USART_DisableIT_RXNE(Local_psUart->uart_handle);
-        LL_USART_DisableIT_PE(Local_psUart->uart_handle);
-        LL_USART_DisableIT_ERROR(Local_psUart->uart_handle);
+    }
+
+    /*  disable UART TX interrupts  */
+    if((LL_USART_GetTransferDirection(Local_psUart->uart_handle) & LL_USART_DIRECTION_TX) == LL_USART_DIRECTION_TX)
+    {
+        LL_USART_DisableIT_TXE(Local_psUart->uart_handle);
     }
 
     /*  reset RX/TX buffers & DMA TX/RX channels */
@@ -837,18 +855,26 @@ UART_Error_t UART_enRead(const UART_Channel_t enChannel, uint8_t * const pu8Data
 
     (*pu32Count) = Local_u32Count;
 
+    /**
+     * @note ring buffer return NULPTR error if ring buffer is not initialized,
+     * that means UART_enRead() was called before initializing UART channel
+     */
     if(Local_enBufferError == RING_BUFFER_ERROR_NULLPTR)
     {
         return UART_ERROR_NOT_INIT;
     }
-    else if(Local_enBufferError == RING_BUFFER_ERROR_EMPTY)
+    
+    /**
+     * UART RX buffer is empty
+     * 
+     * @note RingBuffer_enGetItems() sets pu32Count to 0 when ring buffer is empty
+     */
+    if(Local_enBufferError == RING_BUFFER_ERROR_EMPTY)
     {
         return UART_ERROR_BUFFER_EMPTY;
     }
-    else
-    {
-        return UART_ERROR_NONE;
-    }
+
+    return UART_ERROR_NONE;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -904,18 +930,26 @@ UART_Error_t UART_enReadUntil(const UART_Channel_t enChannel, uint8_t * const pu
 
     (*pu32Count) = Local_u32Count;
 
+    /**
+     * @note ring buffer return NULPTR error if ring buffer is not initialized,
+     * that means UART_enReadUntil() was called before initializing UART channel
+     */
     if(Local_enBufferError == RING_BUFFER_ERROR_NULLPTR)
     {
         return UART_ERROR_NOT_INIT;
     }
-    else if(Local_u32Count == 0)
+    
+    /**
+     * if UARTs empty, return buffer empty error
+     * 
+     * @note RingBuffer_enGetItems() sets pu32Count to 0 when ring buffer is empty
+     */
+    if(Local_enBufferError == RING_BUFFER_ERROR_EMPTY)
     {
         return UART_ERROR_BUFFER_EMPTY;
     }
-    else
-    {
-        return UART_ERROR_NONE;
-    }
+
+    return UART_ERROR_NONE;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -965,11 +999,22 @@ UART_Error_t UART_enWrite(const UART_Channel_t enChannel, uint8_t const * const 
 
     (*pu32Count) = Local_u32Count;
 
+    /**
+     * @note ring buffer return NULPTR error if ring buffer is not initialized,
+     * that means UART_enWrite() was called before initializing UART channel
+     */
     if(Local_enBufferError == RING_BUFFER_ERROR_NULLPTR)
     {
         return UART_ERROR_NOT_INIT;
     }
-    else if(Local_enBufferError == RING_BUFFER_ERROR_FULL)
+    
+    /**
+     *  If UART TX buffer is full, return buffer full error,
+     *  else enable UART TXE interrupt (if not enabled)
+     * 
+     * @note RingBuffer_enPutItems() sets pu32Count to 0 when ring buffer is full
+     * */
+    if(Local_enBufferError == RING_BUFFER_ERROR_FULL)
     {
         return UART_ERROR_BUFFER_FULL;
     }
@@ -985,7 +1030,8 @@ UART_Error_t UART_enWrite(const UART_Channel_t enChannel, uint8_t const * const 
 UART_Error_t UART_enWriteBlocking(const UART_Channel_t enChannel, uint8_t const * const pu8Data, uint32_t u32Len)
 {
     UART_t * Local_psUart = NULL;
-    uint8_t * Local_pu8Data = (uint8_t *)pu8Data;
+    uint32_t Local_u32TransmitCount = 0;
+    uint32_t Local_u32WriteCount;
 
 #ifdef DEBUG
 
@@ -1014,17 +1060,19 @@ UART_Error_t UART_enWriteBlocking(const UART_Channel_t enChannel, uint8_t const 
 
 #endif /*  DEBUG  */
 
-    while(u32Len--)
+    /* write data to UART TX buffer and wait for the data to be transmitted */
+    while(Local_u32TransmitCount < u32Len)
     {
-        LL_USART_TransmitData8(Local_psUart->uart_handle, *Local_pu8Data++);
+        UART_enWrite(
+            enChannel, 
+            &pu8Data[Local_u32TransmitCount], 
+            u32Len - Local_u32TransmitCount, 
+            &Local_u32WriteCount
+        );
 
-        while(LL_USART_IsActiveFlag_TXE(Local_psUart->uart_handle) == 0)
-        {
-        }
-    }
+        Local_u32TransmitCount += Local_u32WriteCount;
 
-    while(LL_USART_IsActiveFlag_TC(Local_psUart->uart_handle) == 0)
-    {
+        UART_enFlushTx(enChannel);
     }
 
     return UART_ERROR_NONE;
@@ -1054,11 +1102,10 @@ UART_Error_t UART_enFlushTx(const UART_Channel_t enChannel)
 
 #endif /*  DEBUG  */
 
+    /* wait until all bytes in UART TX buffer are transmitted (UART TX buffer is empty) */
     do
     {
         UART_enUpdateChannel(enChannel);
-
-        /*  wait TX buffer to be empty  */
         RingBuffer_enItemCount(Local_psUart->tx_buffer, &Local_u32RemainingBytes);
     }
     while(Local_u32RemainingBytes > 0);

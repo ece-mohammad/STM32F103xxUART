@@ -111,7 +111,7 @@ typedef RING_BUFFER_COUNTER_DATA_TYPE RingBuffer_Counter_t;
 /**
  * @brief Ring buffer structure
  */
-typedef struct RingBuffer_t {
+typedef struct ringbuffer_t {
     RingBuffer_Item_t * data;               /**<  pointer to ring buffer data  */
     RingBuffer_Counter_t size;              /**<  size of ring buffer, maximum number of items ring buffer can hold is `size - 1`  */
     volatile RingBuffer_Counter_t head;     /**<  ring buffer head pointer, used to read items from the buffer   */
@@ -121,7 +121,7 @@ typedef struct RingBuffer_t {
 /**
  * @brief Ring buffer error codes
  */
-typedef enum RingBuffer_error_t {
+typedef enum ringbuffer_error_t {
     RING_BUFFER_ERROR_NONE,                 /**<  No error: function execution was successful  */
     RING_BUFFER_ERROR_NULLPTR,              /**<  Null pointer error: an unexpected null pointer  */
     RING_BUFFER_ERROR_INVALID_PARAM,        /**<  Invalid parameter error: a parameter with an invalid value was passed to the function. For example: zero for an array length  */

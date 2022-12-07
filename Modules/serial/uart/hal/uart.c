@@ -211,9 +211,10 @@ static const UART_t * const UART_asHandles[UART_CHANNEL_COUNT] = {
 
 UART_Error_t UART_enInitialize(const UART_Channel_t enChannel, UART_Conf_t const * const psConf)
 {
-    RingBuffer_Error_t Local_enBufferError;
-    UART_t * Local_psUart = NULL;
     GPIO_InitTypeDef Local_sGpioInit = {0};
+    UART_Conf_t Local_sUartConf = {0};
+    UART_t * Local_psUart = NULL;
+    RingBuffer_Error_t Local_enBufferError;
 
 #ifdef DEBUG
 
@@ -264,9 +265,15 @@ UART_Error_t UART_enInitialize(const UART_Channel_t enChannel, UART_Conf_t const
         }
     }
 
+    /* copy UART configurations */
+    memcpy(&Local_sUartConf, psConf, sizeof Local_sUartConf);
+    Local_sUartConf.Mode = 0;
+
     /*  initialize UART RX buffer  */
     if(Local_psUart->rx_size)
     {
+        Local_sUartConf.Mode |= UART_MODE_RX;
+
         Local_enBufferError = RingBuffer_enInit(Local_psUart->rx_buffer, Local_psUart->rx, Local_psUart->rx_size);
         assert_param(Local_enBufferError == RING_BUFFER_ERROR_NONE);
 
@@ -279,6 +286,8 @@ UART_Error_t UART_enInitialize(const UART_Channel_t enChannel, UART_Conf_t const
     /*  initialize UART TX buffer  */
     if(Local_psUart->tx_size)
     {
+        Local_sUartConf.Mode |= UART_MODE_TX;
+
         Local_enBufferError = RingBuffer_enInit(Local_psUart->tx_buffer, Local_psUart->tx, Local_psUart->tx_size);
         assert_param(Local_enBufferError == RING_BUFFER_ERROR_NONE);
 
@@ -290,7 +299,7 @@ UART_Error_t UART_enInitialize(const UART_Channel_t enChannel, UART_Conf_t const
     }
 
     /*  configure UART channel  */
-    memcpy(&Local_psUart->handle->Init, psConf, sizeof(Local_psUart->handle->Init));
+    memcpy(&Local_psUart->handle->Init, &Local_sUartConf, sizeof(Local_sUartConf));
 
     if(HAL_UART_Init(Local_psUart->handle) != HAL_OK)
     {
@@ -300,11 +309,9 @@ UART_Error_t UART_enInitialize(const UART_Channel_t enChannel, UART_Conf_t const
 #if !defined(UART_MINIMAL_INTERRUPTS)
 
     /*  enable UART RX/Error interrupts if RX mode is enabled  */
-    if((psConf->Mode & UART_MODE_RX) == UART_MODE_RX)
+    if((Local_sUartConf.Mode & UART_MODE_RX) == UART_MODE_RX)
     {
         __HAL_UART_ENABLE_IT(Local_psUart->handle, UART_IT_RXNE);
-        // __HAL_UART_ENABLE_IT(Local_psUart->handle, UART_IT_PE);
-        // __HAL_UART_ENABLE_IT(Local_psUart->handle, UART_IT_ERR);
     }
 
     /*  enable UART interrupts  */
@@ -335,16 +342,24 @@ UART_Error_t UART_enDeInitialize(const UART_Channel_t enChannel)
 
 #endif /*  DEBUG  */
 
+#if !defined(UART_MINIMAL_INTERRUPTS)
+
     /*  disable UART NVIC interrupts  */
     HAL_NVIC_DisableIRQ(Local_psUart->uart_irq);
 
-    /*  disable UART RX interrupts  */
+    /*  disable UART RX interrupt  */
     if(Local_psUart->handle->Init.Mode & UART_MODE_RX)
     {
         __HAL_UART_DISABLE_IT(Local_psUart->handle, UART_IT_RXNE);
-        __HAL_UART_DISABLE_IT(Local_psUart->handle, UART_IT_PE);
-        __HAL_UART_DISABLE_IT(Local_psUart->handle, UART_IT_ERR);
     }
+
+    /*  disable UART TX interrupt  */
+    if(Local_psUart->handle->Init.Mode & UART_MODE_TX)
+    {
+        __HAL_UART_DISABLE_IT(Local_psUart->handle, UART_IT_TXE);
+    }
+    
+#endif /* !defined(UART_MINIMAL_INTERRUPTS) */
 
     /*  reset RX/TX buffers */
     RingBuffer_enReset(Local_psUart->tx_buffer);
@@ -364,6 +379,7 @@ UART_Error_t UART_enDeInitialize(const UART_Channel_t enChannel)
 UART_Error_t UART_enRead(const UART_Channel_t enChannel, uint8_t * const pu8Data, uint32_t u32Len, uint32_t * const pu32Count)
 {
     UART_t * Local_psUart = NULL;
+    RingBuffer_Error_t Local_enBufferError;
 
 #ifdef DEBUG
 
@@ -393,11 +409,23 @@ UART_Error_t UART_enRead(const UART_Channel_t enChannel, uint8_t * const pu8Data
 #endif /*  DEBUG  */
 
     /* read byte from UART RX buffer */
-    RingBuffer_enGetItems(Local_psUart->rx_buffer, pu8Data, u32Len, pu32Count);
+    Local_enBufferError = RingBuffer_enGetItems(Local_psUart->rx_buffer, pu8Data, u32Len, pu32Count);
+
+    /**
+     * @note ring buffer return NULPTR error if ring buffer is not initialized,
+     * that means UART_enRead() was called before initializing UART channel
+     */
+    if(Local_enBufferError == RING_BUFFER_ERROR_NULLPTR)
+    {
+        return UART_ERROR_NOT_INIT;
+    }
 
     /* If RX buffer is empty, return buffer empty error */
-    if((*pu32Count) == 0)
+    if(Local_enBufferError == RING_BUFFER_ERROR_EMPTY)
     {
+        /**
+         * @note RingBuffer_enGetItems() sets pu32Count to 0 when ring buffer is empty
+         */
         return UART_ERROR_BUFFER_EMPTY;
     }
 
@@ -411,6 +439,7 @@ UART_Error_t UART_enReadUntil(const UART_Channel_t enChannel, uint8_t * const pu
     uint32_t Local_u32Count = 0;
     UART_t * Local_psUart = NULL;
     uint8_t Local_u8Byte = 0;
+    RingBuffer_Error_t Local_enBufferError = RING_BUFFER_ERROR_NONE;
 
 #ifdef DEBUG
 
@@ -445,7 +474,7 @@ UART_Error_t UART_enReadUntil(const UART_Channel_t enChannel, uint8_t * const pu
      *  - a byte is read that has the value == u8Until
      *  - u32Len bytes were read from UART RX buffer
      * */
-    while((Local_u32Count < u32Len) && (RingBuffer_enGetItem(Local_psUart->rx_buffer, &Local_u8Byte) == RING_BUFFER_ERROR_NONE))
+    while((Local_u32Count < u32Len) && ((Local_enBufferError = RingBuffer_enGetItem(Local_psUart->rx_buffer, &Local_u8Byte)) == RING_BUFFER_ERROR_NONE))
     {
         pu8Data[Local_u32Count++] = Local_u8Byte;
 
@@ -461,8 +490,21 @@ UART_Error_t UART_enReadUntil(const UART_Channel_t enChannel, uint8_t * const pu
 
     (*pu32Count) = Local_u32Count;
 
-    /* if UARTs empty, return buffer empty error  */
-    if(Local_u32Count == 0)
+    /**
+     * @note ring buffer return NULPTR error if ring buffer is not initialized,
+     * that means UART_enReadUntil() was called before initializing UART channel
+     */
+    if(Local_enBufferError == RING_BUFFER_ERROR_NULLPTR)
+    {
+        return UART_ERROR_NOT_INIT;
+    }
+
+    /**
+     * if UARTs empty, return buffer empty error
+     * 
+     * @note RingBuffer_enGetItems() sets pu32Count to 0 when ring buffer is empty
+     */
+    if(Local_enBufferError == RING_BUFFER_ERROR_EMPTY)
     {
         return UART_ERROR_BUFFER_EMPTY;
     }
@@ -482,6 +524,7 @@ UART_Error_t UART_enReadLine(const UART_Channel_t enChannel, uint8_t * const pu8
 UART_Error_t UART_enWrite(const UART_Channel_t enChannel, uint8_t const * const pu8Data, uint32_t u32Len, uint32_t * const pu32Count)
 {
     UART_t * Local_psUart = NULL;
+    RingBuffer_Error_t Local_enBufferError;
 
 #ifdef DEBUG
 
@@ -511,22 +554,41 @@ UART_Error_t UART_enWrite(const UART_Channel_t enChannel, uint8_t const * const 
 #endif /*  DEBUG  */
 
     /* write bytes to UART TX buffer */
-    RingBuffer_enPutItems(Local_psUart->tx_buffer, pu8Data, u32Len, pu32Count);
+    Local_enBufferError = RingBuffer_enPutItems(Local_psUart->tx_buffer, pu8Data, u32Len, pu32Count);
 
     /**
-     *  If UART TX vuffer is full, return buffer full error,
-     *  else if UART TXE interrupt is not enabed, enable UART TXE interrupt 
+     * @note ring buffer return NULPTR error if ring buffer is not initialized,
+     * that means UART_enWrite() was called before initializing UART channel
+     */
+    if(Local_enBufferError == RING_BUFFER_ERROR_NULLPTR)
+    {
+        return UART_ERROR_NOT_INIT;
+    }
+
+    /**
+     *  If UART TX buffer is full, return buffer full error,
+     *  else enable UART TXE interrupt (if not enabled)
+     * 
+     * @note RingBuffer_enPutItems() sets pu32Count to 0 when ring buffer is full
      * */
-    if((*pu32Count) == 0)
+    if(Local_enBufferError == RING_BUFFER_ERROR_FULL)
     {
         return UART_ERROR_BUFFER_FULL;
     }
     else
     {
+
+#if !defined(UART_MINIMAL_INTERRUPTS)
+        /**
+         * @note enabling UART TXE interrupt while UART_IRQn is no enabled in NVIC will not trigger UART interrupts.
+         * However, it's better to not enable them at all when they are not needed
+         */
         if(!__HAL_UART_GET_IT_SOURCE(Local_psUart->handle, UART_IT_TXE))
         {
             __HAL_UART_ENABLE_IT(Local_psUart->handle, UART_IT_TXE);
         }
+#endif /* defined(UART_MINIMAL_INTERRUPTS) */
+
     }
 
     return UART_ERROR_NONE;
@@ -567,9 +629,10 @@ UART_Error_t UART_enWriteBlocking(const UART_Channel_t enChannel, uint8_t const 
 
 #endif /*  DEBUG  */
 
-    /* write data to UART TX buffer and wait for the data to be transmitted */
+
     while(Local_u32TransmitCount < u32Len)
     {
+        /* write data to UART TX buffer  */
         UART_enWrite(
             enChannel, 
             &pu8Data[Local_u32TransmitCount], 
@@ -612,6 +675,7 @@ UART_Error_t UART_enFlushTx(const UART_Channel_t enChannel)
     /* wait until all bytes in UART TX buffer are transmitted (UART TX buffer is empty) */
     do
     {
+        UART_enUpdateChannel(enChannel);
         RingBuffer_enItemCount(Local_psUart->tx_buffer, &Local_u32RemainingBytes);
     }
     while(Local_u32RemainingBytes > 0);
@@ -679,6 +743,7 @@ UART_Error_t UART_enUpdateChannel(UART_Channel_t enChannel)
 
     /**
      * Handle UART error handling:
+     * 
      * - Error flags (in USARTx->SR) are cleared by: 
      *   1- reading UARTx->SR register, followed by
      *   2- reading USARTx->DR register
@@ -698,7 +763,7 @@ UART_Error_t UART_enUpdateChannel(UART_Channel_t enChannel)
     if((Local_u32Status & UART_FLAG_RXNE) == UART_FLAG_RXNE)
     {
         Local_u8Byte = (uint8_t)Local_psUart->handle->Instance->DR;
-        if((Local_u32Status & UART_FLAG_PE) != UART_FLAG_PE)
+        if((Local_u32Status & (UART_FLAG_NE | UART_FLAG_FE | UART_FLAG_ORE | UART_FLAG_PE)) == FALSE)
         {
             Local_enError = RingBuffer_enPutItem(Local_psUart->rx_buffer, &Local_u8Byte);
         }
@@ -739,6 +804,7 @@ static void UART_vidIrqCallback(UART_t const * const psUart)
 
     /**
      * Handle UART error handling:
+     * 
      * - Error flags (in USARTx->SR) are cleared by: 
      *   1- reading UARTx->SR register, followed by
      *   2- reading USARTx->DR register
@@ -759,7 +825,7 @@ static void UART_vidIrqCallback(UART_t const * const psUart)
     if(__HAL_UART_GET_IT_SOURCE(psUart->handle, UART_IT_RXNE) && ((Local_u32Status & UART_FLAG_RXNE) == UART_FLAG_RXNE))
     {
         Local_u8Byte = (uint8_t)psUart->handle->Instance->DR;
-        if((Local_u32Status & UART_FLAG_PE) != UART_FLAG_PE)
+        if((Local_u32Status & (UART_FLAG_NE | UART_FLAG_FE | UART_FLAG_ORE | UART_FLAG_PE)) == FALSE)
         {
             Local_enError = RingBuffer_enPutItem(psUart->rx_buffer, &Local_u8Byte);
         }
@@ -785,6 +851,11 @@ static void UART_vidIrqCallback(UART_t const * const psUart)
         }
         else
         {
+            /**
+             * @note disable TXE interrupt when buffer is empty, 
+             * because TXE flag will always be asserted (until a new byte is written to UART->DR)
+             * and that keeps triggerring UART interrupt
+             * */
             __HAL_UART_DISABLE_IT(psUart->handle, UART_IT_TXE);
         }
     }
