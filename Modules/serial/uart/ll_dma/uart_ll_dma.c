@@ -1176,7 +1176,7 @@ UART_Error_t UART_enUpdateChannel(UART_Channel_t enChannel)
         Local_u32Status = Local_psUart->uart_handle->SR;
 
         /* check UART IDLE flag */
-        if((Local_u32Status & USART_SR_IDLE) == USART_SR_IDLE)
+        if((Local_u32Status & LL_USART_SR_IDLE) == LL_USART_SR_IDLE)
         {
             /* will clear IDLE flag (by reading UART->SR then UART->DR registers) */
             Local_u8Byte = Local_psUart->uart_handle->DR;
@@ -1238,8 +1238,8 @@ static void UART_vidIrqCallback(const UART_t * const psUart)
     uint8_t Local_u8Byte;
 
     /*  check error flags   */
-    if((LL_USART_IsEnabledIT_PE(psUart->uart_handle) && ((Local_u32Satus & USART_SR_PE) == USART_SR_PE)) ||
-        (LL_USART_IsEnabledIT_ERROR(psUart->uart_handle) && ((Local_u32Satus & USART_SR_ORE) == USART_SR_ORE)))
+    if((LL_USART_IsEnabledIT_PE(psUart->uart_handle) && ((Local_u32Satus & LL_USART_SR_PE) == LL_USART_SR_PE)) ||
+        (LL_USART_IsEnabledIT_ERROR(psUart->uart_handle) && ((Local_u32Satus & LL_USART_SR_ORE) == LL_USART_SR_ORE)))
     {
         Local_u8Byte = (uint8_t)psUart->uart_handle->DR;
         (void)Local_u8Byte;
@@ -1247,7 +1247,7 @@ static void UART_vidIrqCallback(const UART_t * const psUart)
     }
 
     /*  check IDLE flag  */
-    if(LL_USART_IsEnabledIT_IDLE(psUart->uart_handle) && ((Local_u32Satus & USART_SR_IDLE) == USART_SR_IDLE))
+    if(LL_USART_IsEnabledIT_IDLE(psUart->uart_handle) && ((Local_u32Satus & LL_USART_SR_IDLE) == LL_USART_SR_IDLE))
     {
         LL_USART_ClearFlag_IDLE(psUart->uart_handle);
         UART_DMA_vidReceiveData(psUart);

@@ -685,10 +685,10 @@ UART_Error_t UART_enUpdateChannel(UART_Channel_t enChannel)
      *   - Else:
      *     - Ignore read byte with parity error
      * */
-    if((Local_u32Status & USART_SR_RXNE) == USART_SR_RXNE)
+    if((Local_u32Status & LL_USART_SR_RXNE) == LL_USART_SR_RXNE)
     {
         Local_u8Byte = LL_USART_ReceiveData8(Local_psUart->uart_handle);
-        if((Local_u32Status & (USART_SR_NE | USART_SR_FE | USART_SR_ORE | USART_SR_PE)) == FALSE)
+        if((Local_u32Status & (LL_USART_SR_NE | LL_USART_SR_FE | LL_USART_SR_ORE | LL_USART_SR_PE)) == FALSE)
         {
             RingBuffer_enPutItem(Local_psUart->rx_buffer, &Local_u8Byte);
         }
@@ -701,7 +701,7 @@ UART_Error_t UART_enUpdateChannel(UART_Channel_t enChannel)
      *   - If UART->tx_buffer has data bytes (not empty):
      *     - ready byte from UART->tx_buffer and send it (writing to DR clears TXE flag)
      * */
-    if((Local_u32Status & USART_SR_TXE) == USART_SR_TXE)
+    if((Local_u32Status & LL_USART_SR_TXE) == LL_USART_SR_TXE)
     {
         Local_enBufferError = RingBuffer_enGetItem(Local_psUart->tx_buffer, &Local_u8Byte);
         if(Local_enBufferError == RING_BUFFER_ERROR_NONE)
@@ -747,10 +747,10 @@ static void UART_vidIrqCallback(const UART_t * const psUart)
      *   - Else:
      *     - Ignore read byte with parity error
      * */
-    if(LL_USART_IsEnabledIT_RXNE(psUart->uart_handle) && ((Local_u32Status & USART_SR_RXNE) == USART_SR_RXNE))
+    if(LL_USART_IsEnabledIT_RXNE(psUart->uart_handle) && ((Local_u32Status & LL_USART_SR_RXNE) == LL_USART_SR_RXNE))
     {
         Local_u8Byte = LL_USART_ReceiveData8(psUart->uart_handle);
-        if((Local_u32Status & (USART_SR_NE | USART_SR_FE | USART_SR_ORE | USART_SR_PE)) == FALSE)
+        if((Local_u32Status & (LL_USART_SR_NE | LL_USART_SR_FE | LL_USART_SR_ORE | LL_USART_SR_PE)) == FALSE)
         {
             RingBuffer_enPutItem(psUart->rx_buffer, &Local_u8Byte);
         }
@@ -767,7 +767,7 @@ static void UART_vidIrqCallback(const UART_t * const psUart)
      *   - else (UART->tx_buffer is empty):
      *     - disable UART->TXEI (TX empty interrupt)
      * */
-    if(LL_USART_IsEnabledIT_TXE(psUart->uart_handle) && ((Local_u32Status & USART_SR_TXE) == USART_SR_TXE))
+    if(LL_USART_IsEnabledIT_TXE(psUart->uart_handle) && ((Local_u32Status & LL_USART_SR_TXE) == LL_USART_SR_TXE))
     {
         Local_enBufferError = RingBuffer_enGetItem(psUart->tx_buffer, &Local_u8Byte);
         if(Local_enBufferError == RING_BUFFER_ERROR_NONE)
