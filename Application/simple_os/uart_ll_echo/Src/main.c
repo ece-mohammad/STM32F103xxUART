@@ -7,7 +7,7 @@
  *              MCU configurations:
  *              <ul>
  * 
- *                <li>System Clokc: 36 MHz</li>
+ *                <li>System Clokc: 32 MHz</li>
  * 
  *                <li>UARTx (1, 2, 3) baudrate: 4800 bps, configurable 
  *                    using @ref UART_BAUDRATE</li>
@@ -274,6 +274,16 @@ static void SystemClock_Config(void)
     }
     LL_Init1msTick(32000000);
     LL_SetSystemCoreClock(32000000);
+
+    /*  Initialize SysTick to generate interrupts   */
+    SysTick->LOAD  = (uint32_t)((32000000 / 1000) - 1UL);       /* set reload register */
+    SysTick->VAL   = 0UL;                                       /* Load the SysTick Counter Value */
+    SysTick->CTRL  = SysTick_CTRL_CLKSOURCE_Msk |
+            SysTick_CTRL_TICKINT_Msk |                          /* Enable the Systick interrupt */
+            SysTick_CTRL_ENABLE_Msk;                            /* Enable the Systick Timer */
+            
+    /* SysTick_IRQn interrupt configuration */
+    NVIC_SetPriority(SysTick_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(),15, 0));
 }
 
 /* USER CODE BEGIN 4 */
@@ -354,20 +364,12 @@ int main(void)
     /* System interrupt init*/
     NVIC_SetPriorityGrouping(NVIC_PRIORITYGROUP_4);
 
-
     /** NOJTAG: JTAG-DP Disabled and SW-DP Enabled
      */
     LL_GPIO_AF_Remap_SWJ_NOJTAG();
 
     /* Configure the system clock */
     SystemClock_Config();
-
-    /*  Initialize SysTick to generate interrupts   */
-    SysTick->LOAD  = (uint32_t)((32000000 / 1000) - 1UL);       /* set reload register */
-    SysTick->VAL   = 0UL;                                       /* Load the SysTick Counter Value */
-    SysTick->CTRL  = SysTick_CTRL_CLKSOURCE_Msk |
-            SysTick_CTRL_TICKINT_Msk |                          /* Enable the Systick interrupt */
-            SysTick_CTRL_ENABLE_Msk;                            /* Enable the Systick Timer */
 
     /* Initialize all configured peripherals */
     MX_GPIO_Init();

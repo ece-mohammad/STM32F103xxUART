@@ -674,6 +674,11 @@ UART_Error_t UART_enUpdateChannel(UART_Channel_t enChannel)
      *   2- reading USARTx->DR register
      * */
     Local_u32Status = Local_psUart->uart_handle->SR;
+    if(Local_u32Status & (LL_USART_SR_NE | LL_USART_SR_FE | LL_USART_SR_ORE | LL_USART_SR_PE))
+    {
+        Local_u8Byte = LL_USART_ReceiveData8(Local_psUart->uart_handle);
+        (void)Local_u8Byte;
+    }
 
     /**
      * Handle UART RX
@@ -685,13 +690,14 @@ UART_Error_t UART_enUpdateChannel(UART_Channel_t enChannel)
      *   - Else:
      *     - Ignore read byte with parity error
      * */
-    if((Local_u32Status & LL_USART_SR_RXNE) == LL_USART_SR_RXNE)
+    else if((Local_u32Status & LL_USART_SR_RXNE) == LL_USART_SR_RXNE)
     {
         Local_u8Byte = LL_USART_ReceiveData8(Local_psUart->uart_handle);
-        if((Local_u32Status & (LL_USART_SR_NE | LL_USART_SR_FE | LL_USART_SR_ORE | LL_USART_SR_PE)) == FALSE)
-        {
-            RingBuffer_enPutItem(Local_psUart->rx_buffer, &Local_u8Byte);
-        }
+        RingBuffer_enPutItem(Local_psUart->rx_buffer, &Local_u8Byte);
+    }
+    else
+    {
+        /* do nothing */
     }
 
     /**
@@ -735,6 +741,12 @@ static void UART_vidIrqCallback(const UART_t * const psUart)
      *   2- reading USARTx->DR register
      * */
     Local_u32Status = psUart->uart_handle->SR;
+    if(Local_u32Status & (LL_USART_SR_NE | LL_USART_SR_FE | LL_USART_SR_ORE | LL_USART_SR_PE))
+    {
+        Local_u8Byte = LL_USART_ReceiveData8(psUart->uart_handle);
+        (void)Local_u8Byte;
+        return;
+    }
 
     /**
      * Handle UART RX
@@ -747,13 +759,11 @@ static void UART_vidIrqCallback(const UART_t * const psUart)
      *   - Else:
      *     - Ignore read byte with parity error
      * */
-    if(LL_USART_IsEnabledIT_RXNE(psUart->uart_handle) && ((Local_u32Status & LL_USART_SR_RXNE) == LL_USART_SR_RXNE))
+    if((Local_u32Status & LL_USART_SR_RXNE) == LL_USART_SR_RXNE)
     {
         Local_u8Byte = LL_USART_ReceiveData8(psUart->uart_handle);
-        if((Local_u32Status & (LL_USART_SR_NE | LL_USART_SR_FE | LL_USART_SR_ORE | LL_USART_SR_PE)) == FALSE)
-        {
-            RingBuffer_enPutItem(psUart->rx_buffer, &Local_u8Byte);
-        }
+        RingBuffer_enPutItem(psUart->rx_buffer, &Local_u8Byte);
+        return;
     }
 
     /**

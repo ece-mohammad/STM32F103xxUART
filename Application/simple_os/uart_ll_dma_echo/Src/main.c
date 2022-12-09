@@ -268,6 +268,16 @@ static void SystemClock_Config(void)
     }
     LL_Init1msTick(32000000);
     LL_SetSystemCoreClock(32000000);
+
+    /*  Initialize SysTick to generate interrupts   */
+    SysTick->LOAD  = (uint32_t)((32000000 / 1000) - 1UL);       /* set reload register */
+    SysTick->VAL   = 0UL;                                       /* Load the SysTick Counter Value */
+    SysTick->CTRL  = SysTick_CTRL_CLKSOURCE_Msk |
+            SysTick_CTRL_TICKINT_Msk |                          /* Enable the Systick interrupt */
+            SysTick_CTRL_ENABLE_Msk;                            /* Enable the Systick Timer */
+            
+    /* SysTick_IRQn interrupt configuration */
+    NVIC_SetPriority(SysTick_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(),15, 0));
 }
 
 UART_Error_t uart_init(UART_Channel_t ch)
@@ -355,16 +365,6 @@ int main(void)
     /* Configure the system clock */
     SystemClock_Config();
 
-    /*  Initialize SysTick to generate interrupts   */
-    SysTick->LOAD  = (uint32_t)((32000000 / 1000) - 1UL);       /* set reload register */
-    SysTick->VAL   = 0UL;                                       /* Load the SysTick Counter Value */
-    SysTick->CTRL  = SysTick_CTRL_CLKSOURCE_Msk |
-            SysTick_CTRL_TICKINT_Msk |                          /* Enable the Systick interrupt */
-            SysTick_CTRL_ENABLE_Msk;                            /* Enable the Systick Timer */
-            
-    /* SysTick_IRQn interrupt configuration */
-    NVIC_SetPriority(SysTick_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(),15, 0));
-    
     /* Initialize all configured peripherals */
     MX_GPIO_Init();
 

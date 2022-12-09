@@ -7,7 +7,7 @@
  *              and UART3.
  *              MCU configurations:
  *              <ul>
- *                <li>System Clokc: 32 MHz</li>
+ *                <li>System Clokc: 36 MHz</li>
  *                <li>UARTx (1, 2, 3) baudrate: 9600 up to 921600 bps,
  *                  configurable using @ref UART_BAUDRATE</li>
  *              </ul>
@@ -131,12 +131,12 @@ static void SystemClock_Config(void)
      *   - Enable HSI
      *   - Enable  PLL
      *   - PLL_CLK_SRC  = HSI_CLK / 2
-     *   - PLL_MUL      = PLL_MUL_8
+     *   - PLL_MUL      = PLL_MUL_16
      * 
      * PLL_CLK  = PLL_CLK_SRC * PLL_MUL 
-     *          = HSI_CLK / 2 * 8 
+     *          = HSI_CLK / 2 * 16
      *          = HSI_CLK * 4 
-     * PLL_CLK  = 32 MHz
+     * PLL_CLK  = 64 MHz
      */
     LL_RCC_HSI_SetCalibTrimming(16);
     LL_RCC_HSI_Enable();
@@ -146,7 +146,7 @@ static void SystemClock_Config(void)
     {
 
     }
-    LL_RCC_PLL_ConfigDomain_SYS(LL_RCC_PLLSOURCE_HSI_DIV_2, LL_RCC_PLL_MUL_8);
+    LL_RCC_PLL_ConfigDomain_SYS(LL_RCC_PLLSOURCE_HSI_DIV_2, LL_RCC_PLL_MUL_16);
     LL_RCC_PLL_Enable();
 
     /* Wait till PLL is ready */
@@ -159,11 +159,11 @@ static void SystemClock_Config(void)
      * Initializes the CPU, AHB and APB buses clocks:
      *   - SYS_CLK    = PLL_CLK
      *   - AHB_CLK    = SYS_CLK
-     *   - APB1_CLK   = AHB_CLK / 1
+     *   - APB1_CLK   = AHB_CLK / 2
      *   - APB2_CLK   = AHB_CLK / 1
      */
     LL_RCC_SetAHBPrescaler(LL_RCC_SYSCLK_DIV_1);
-    LL_RCC_SetAPB1Prescaler(LL_RCC_APB1_DIV_1);
+    LL_RCC_SetAPB1Prescaler(LL_RCC_APB1_DIV_2);
     LL_RCC_SetAPB2Prescaler(LL_RCC_APB2_DIV_1);
     LL_RCC_SetSysClkSource(LL_RCC_SYS_CLKSOURCE_PLL);
 
@@ -172,8 +172,24 @@ static void SystemClock_Config(void)
     {
 
     }
-    LL_Init1msTick(32000000);
-    LL_SetSystemCoreClock(32000000);
+    
+    LL_Init1msTick(64000000);
+    LL_SetSystemCoreClock(64000000);
+
+#if defined(CONF_UART_MINIMAL_INTERRUPTS)
+
+    /*  Initialize SysTick to generate interrupts   */
+    SysTick->LOAD  = (uint32_t)((64000000 / 1000) - 1UL);       /* set reload register */
+    SysTick->VAL   = 0UL;                                       /* Load the SysTick Counter Value */
+    SysTick->CTRL  = SysTick_CTRL_CLKSOURCE_Msk |
+            SysTick_CTRL_TICKINT_Msk |                          /* Enable the Systick interrupt */
+            SysTick_CTRL_ENABLE_Msk;                            /* Enable the Systick Timer */
+            
+    /* SysTick_IRQn interrupt configuration */
+    NVIC_SetPriority(SysTick_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(),15, 0));
+            
+#endif /* defined(CONF_UART_MINIMAL_INTERRUPTS) */
+
 }
 
 /* USER CODE BEGIN 4 */
@@ -229,13 +245,12 @@ int main(void)
 {
     /* MCU Configuration--------------------------------------------------------*/
 
-    /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
+    /* Reset of all peripherals, Initializes the Flash interface */
     LL_APB2_GRP1_EnableClock(LL_APB2_GRP1_PERIPH_AFIO);
     LL_APB1_GRP1_EnableClock(LL_APB1_GRP1_PERIPH_PWR);
 
     /* System interrupt init*/
     NVIC_SetPriorityGrouping(NVIC_PRIORITYGROUP_4);
-
 
     /** NOJTAG: JTAG-DP Disabled and SW-DP Enabled
      */
@@ -243,20 +258,6 @@ int main(void)
 
     /* Configure the system clock */
     SystemClock_Config();
-
-#if defined(CONF_UART_MINIMAL_INTERRUPTS)
-
-    /*  Initialize SysTick to generate interrupts   */
-    SysTick->LOAD  = (uint32_t)((16000000 / 1000) - 1UL);       /* set reload register */
-    SysTick->VAL   = 0UL;                                       /* Load the SysTick Counter Value */
-    SysTick->CTRL  = SysTick_CTRL_CLKSOURCE_Msk |
-            SysTick_CTRL_TICKINT_Msk |                   /* Enable the Systick interrupt */
-            SysTick_CTRL_ENABLE_Msk;                   /* Enable the Systick Timer */
-            
-    /* SysTick_IRQn interrupt configuration */
-    NVIC_SetPriority(SysTick_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(),15, 0));
-            
-#endif /* defined(CONF_UART_MINIMAL_INTERRUPTS) */
 
     /* Initialize all configured peripherals */
     MX_GPIO_Init();
@@ -281,17 +282,6 @@ int main(void)
     }
 }
 
-#if defined(CONF_UART_MINIMAL_INTERRUPTS)
-
-void SysTick_Handler(void)
-{
-    UART_enUpdateChannel(UART_CHANNEL_1);
-    UART_enUpdateChannel(UART_CHANNEL_2);
-    UART_enUpdateChannel(UART_CHANNEL_3);
-}
-
-#endif /* defined(CONF_UART_MINIMAL_INTERRUPTS) */
-
 /**
  * @brief  This function is executed in case of error occurrence.
  * @retval None
@@ -300,10 +290,10 @@ void Error_Handler(void)
 {
     /* USER CODE BEGIN Error_Handler_Debug */
     /* User can add his own implementation to report the HAL error return state */
-    // __disable_irq();
-    // while (1)
-    // {
-    // }
+    __disable_irq();
+    while (1)
+    {
+    }
     /* USER CODE END Error_Handler_Debug */
 }
 

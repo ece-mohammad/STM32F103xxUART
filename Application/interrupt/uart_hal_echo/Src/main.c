@@ -6,7 +6,7 @@
  * @details     Echo back received bytes on UART1, UART2 and UART3. 
  *              MCU configurations:
  *              <ul>
- *                <li>System Clokc: 32 MHz</li>
+ *                <li>System Clokc: 64 MHz</li>
  *                <li>UARTx (1, 2, 3) baudrate: 9600 up to 921600 bps,
  *                  configurable using @ref UART_BAUDRATE</li>
  *              </ul>
@@ -126,18 +126,18 @@ void SystemClock_Config(void)
      *   - Enable HSI
      *   - Enable  PLL
      *   - PLL_CLK_SRC  = HSI_CLK / 2
-     *   - PLL_MUL      = PLL_MUL_8
+     *   - PLL_MUL      = PLL_MUL_16
      * 
      * PLL_CLK  = PLL_CLK_SRC * PLL_MUL 
-     *          = HSI_CLK / 2 * 8
-     * PLL_CLK  = 32 MHz
+     *          = HSI_CLK / 2 * 16
+     * PLL_CLK  = 64 MHz
      */
     RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
     RCC_OscInitStruct.HSIState = RCC_HSI_ON;
     RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
     RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
     RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI_DIV2;
-    RCC_OscInitStruct.PLL.PLLMUL = RCC_PLL_MUL8;
+    RCC_OscInitStruct.PLL.PLLMUL = RCC_PLL_MUL16;
     if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
     {
         Error_Handler();
@@ -147,21 +147,24 @@ void SystemClock_Config(void)
      * Initializes the CPU, AHB and APB buses clocks:
      *   - SYS_CLK    = PLL_CLK
      *   - AHB_CLK    = SYS_CLK
-     *   - APB1_CLK   = AHB_CLK / 1
+     *   - APB1_CLK   = AHB_CLK / 2
      *   - APB2_CLK   = AHB_CLK / 1
      */
     RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_SYSCLK | RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2;
     RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
     RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
-    RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
+    RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV2;
     RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
-
-    if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_0) != HAL_OK)
+    if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2) != HAL_OK)
     {
         Error_Handler();
     }
 
+    /* re-initialize systic, using new clock */
     HAL_InitTick(TICK_INT_PRIORITY);
+
+    /* disable systick interrupt */
+    HAL_SuspendTick();
 }
 
 UART_Error_t uart_init(UART_Channel_t ch)
@@ -249,20 +252,6 @@ int main(void)
         uart_loopback(UART_CHANNEL_3);
     }
 }
-
-#if defined(UART_MINIMAL_INTERRUPTS)
-
-/**
- * @brief Update UART channels when @ref UART_MINIMAL_INTERRUPTS is enabled
- */
-void HAL_SYSTICK_Callback(void)
-{
-    UART_enUpdateChannel(UART_CHANNEL_1);
-    UART_enUpdateChannel(UART_CHANNEL_2);
-    UART_enUpdateChannel(UART_CHANNEL_3);
-}
-
-#endif /*  UART_MINIMAL_INTERRUPTS  */
 
 /**
  * @brief  This function is executed in case of error occurrence.

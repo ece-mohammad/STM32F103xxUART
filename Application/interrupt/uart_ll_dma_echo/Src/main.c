@@ -244,20 +244,6 @@ int main(void)
     /* Configure the system clock */
     SystemClock_Config();
 
-#if defined(CONF_UART_MINIMAL_INTERRUPTS)
-
-    /*  Initialize SysTick to generate interrupts   */
-    SysTick->LOAD  = (uint32_t)((16000000 / 1000) - 1UL);       /* set reload register */
-    SysTick->VAL   = 0UL;                                       /* Load the SysTick Counter Value */
-    SysTick->CTRL  = SysTick_CTRL_CLKSOURCE_Msk |
-            SysTick_CTRL_TICKINT_Msk |                   /* Enable the Systick interrupt */
-            SysTick_CTRL_ENABLE_Msk;                   /* Enable the Systick Timer */
-            
-    /* SysTick_IRQn interrupt configuration */
-    NVIC_SetPriority(SysTick_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(),15, 0));
-            
-#endif /* defined(CONF_UART_MINIMAL_INTERRUPTS) */
-
     /* Initialize all configured peripherals */
     MX_GPIO_Init();
 
@@ -280,17 +266,6 @@ int main(void)
         uart_loopback(UART_CHANNEL_3);
     }
 }
-
-#if defined(CONF_UART_MINIMAL_INTERRUPTS)
-
-void SysTick_Handler(void)
-{
-    UART_enUpdateChannel(UART_CHANNEL_1);
-    UART_enUpdateChannel(UART_CHANNEL_2);
-    UART_enUpdateChannel(UART_CHANNEL_3);
-}
-
-#endif /* defined(CONF_UART_MINIMAL_INTERRUPTS) */
 
 /**
  * @brief  This function is executed in case of error occurrence.

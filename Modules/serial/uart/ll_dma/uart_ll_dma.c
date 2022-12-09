@@ -742,8 +742,14 @@ UART_Error_t UART_enInitialize(const UART_Channel_t enChannel, UART_Conf_t const
     /*  enable USART DMA RX request and IDLE interrupt  */
     if((Local_sUartConf.TransferDirection & LL_USART_DIRECTION_RX) == LL_USART_DIRECTION_RX)
     {
+        
+#if !defined(UART_MINIMAL_INTERRUPTS)
+
         LL_USART_EnableIT_IDLE(Local_psUart->uart_handle);
         LL_USART_EnableIT_ERROR(Local_psUart->uart_handle);
+
+#endif /* !defined(UART_MINIMAL_INTERRUPTS) */
+
         LL_USART_EnableDMAReq_RX(Local_psUart->uart_handle);
     }
 
@@ -1259,7 +1265,7 @@ static void UART_vidIrqCallback(const UART_t * const psUart)
 static void UART_DMA_TX_IRQHandler(const UART_t * const psUart)
 {
     /**
-     * Check if TC interrupt is enabled (it should be enabled in UART_vidInitialize() right after DMA TX channel initialization)
+     * Check if DMA TC interrupt is enabled (it should be enabled in UART_vidInitialize() right after DMA TX cfhannel initialization)
      * and DMA TC flag is active
      * */
     if(LL_DMA_IsEnabledIT_TC(psUart->dma_handle, psUart->dma_tx_channel) && psUart->dma_tx_is_active_flag_tc(psUart->dma_handle))

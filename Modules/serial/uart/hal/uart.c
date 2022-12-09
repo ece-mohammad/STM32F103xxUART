@@ -7,6 +7,18 @@
  * @copyright   
  *****************************************************************************/
 
+
+/******************************************************************************
+ * Changelog:
+ * 
+ * 8.12.22 :
+ *   - UART_vidIrqCallback():
+ *     - in UART error checking, return from ISR if an error was found
+ *     - check for RXNE flag only, instead of checking for RXNEIE and RXNE
+ *     - check for TXEIE using direct access to UART onject (UART->CR1)
+ * 
+ *****************************************************************************/
+
 #include <stddef.h>
 #include <stdint.h>
 #include <string.h>
@@ -47,7 +59,6 @@ typedef struct {
  *        FE :  Frame Error and ORE : Over-Run Error).
  * 
  * @param [in,out] psUart UART_t pointer of UART channel (UART_1, UART_2, UART_3, ...)
- * 
  */
 static void UART_vidIrqCallback(UART_t const * const psUart);
 
@@ -230,7 +241,7 @@ UART_Error_t UART_enInitialize(const UART_Channel_t enChannel, UART_Conf_t const
 
 #else
 
-    Local_psUart = UART_asHandles[enChannel];
+    Local_psUart = (UART_t *)UART_asHandles[enChannel];
 
 #endif /*  DEBUG  */
 
@@ -312,6 +323,8 @@ UART_Error_t UART_enInitialize(const UART_Channel_t enChannel, UART_Conf_t const
     if((Local_sUartConf.Mode & UART_MODE_RX) == UART_MODE_RX)
     {
         __HAL_UART_ENABLE_IT(Local_psUart->handle, UART_IT_RXNE);
+        __HAL_UART_ENABLE_IT(Local_psUart->handle, UART_IT_PE);
+        __HAL_UART_ENABLE_IT(Local_psUart->handle, UART_IT_ERR);
     }
 
     /*  enable UART interrupts  */
@@ -338,7 +351,7 @@ UART_Error_t UART_enDeInitialize(const UART_Channel_t enChannel)
 
 #else
 
-    Local_psUart = UART_asHandles[enChannel];
+    Local_psUart = (UART_t *)UART_asHandles[enChannel];
 
 #endif /*  DEBUG  */
 
@@ -404,7 +417,7 @@ UART_Error_t UART_enRead(const UART_Channel_t enChannel, uint8_t * const pu8Data
 
 #else
 
-    Local_psUart = UART_asHandles[enChannel];
+    Local_psUart = (UART_t *)UART_asHandles[enChannel];
 
 #endif /*  DEBUG  */
 
@@ -464,7 +477,7 @@ UART_Error_t UART_enReadUntil(const UART_Channel_t enChannel, uint8_t * const pu
 
 #else
 
-    Local_psUart = UART_asHandles[enChannel];
+    Local_psUart = (UART_t *)UART_asHandles[enChannel];
 
 #endif /*  DEBUG  */
 
@@ -549,7 +562,7 @@ UART_Error_t UART_enWrite(const UART_Channel_t enChannel, uint8_t const * const 
 
 #else
 
-    Local_psUart = UART_asHandles[enChannel];
+    Local_psUart = (UART_t *)UART_asHandles[enChannel];
 
 #endif /*  DEBUG  */
 
@@ -598,13 +611,13 @@ UART_Error_t UART_enWrite(const UART_Channel_t enChannel, uint8_t const * const 
 
 UART_Error_t UART_enWriteBlocking(const UART_Channel_t enChannel, uint8_t const * const pu8Data, uint32_t u32Len)
 {
-    UART_t * Local_psUart = NULL;
     uint32_t Local_u32TransmitCount = 0;
     uint32_t Local_u32WriteCount;
+    UART_Error_t Local_enUartError = UART_ERROR_NONE;
 
 #ifdef DEBUG
 
-    if((enChannel >= UART_CHANNEL_COUNT) || IS_NULLPTR(Local_psUart = (UART_t*)UART_asHandles[enChannel]))
+    if(enChannel >= UART_CHANNEL_COUNT)
     {
         return UART_ERROR_INVALID_CHANNEL;
     }
@@ -623,17 +636,13 @@ UART_Error_t UART_enWriteBlocking(const UART_Channel_t enChannel, uint8_t const 
         return UART_ERROR_INVALID_PARAM;
     }
 
-#else
-
-    Local_psUart = UART_asHandles[enChannel];
-
 #endif /*  DEBUG  */
 
 
-    while(Local_u32TransmitCount < u32Len)
+    while((Local_u32TransmitCount < u32Len) && (Local_enUartError == UART_ERROR_NONE))
     {
         /* write data to UART TX buffer  */
-        UART_enWrite(
+        Local_enUartError = UART_enWrite(
             enChannel, 
             &pu8Data[Local_u32TransmitCount], 
             u32Len - Local_u32TransmitCount, 
@@ -645,7 +654,7 @@ UART_Error_t UART_enWriteBlocking(const UART_Channel_t enChannel, uint8_t const 
         UART_enFlushTx(enChannel);
     }
 
-    return UART_ERROR_NONE;
+    return Local_enUartError;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -668,7 +677,7 @@ UART_Error_t UART_enFlushTx(const UART_Channel_t enChannel)
 
 #else
 
-    Local_psUart = UART_asHandles[enChannel];
+    Local_psUart = (UART_t *)UART_asHandles[enChannel];
 
 #endif /*  DEBUG  */
 
@@ -702,7 +711,7 @@ UART_Error_t UART_enFlushRx(const UART_Channel_t enChannel)
 
 #else
 
-    Local_psUart = UART_asHandles[enChannel];
+    Local_psUart = (UART_t *)UART_asHandles[enChannel];
 
 #endif /*  DEBUG  */
 
@@ -749,6 +758,11 @@ UART_Error_t UART_enUpdateChannel(UART_Channel_t enChannel)
      *   2- reading USARTx->DR register
      * */
     Local_u32Status = Local_psUart->handle->Instance->SR;
+    if(Local_u32Status & (UART_FLAG_NE | UART_FLAG_FE | UART_FLAG_ORE | UART_FLAG_PE))
+    {
+        Local_u8Byte = (uint8_t)Local_psUart->handle->Instance->DR;
+        (void)Local_u8Byte;
+    }
 
     /**
      * Handle UART RX
@@ -760,13 +774,13 @@ UART_Error_t UART_enUpdateChannel(UART_Channel_t enChannel)
      *   - Else:
      *     - Ignore read byte with parity error
      * */
-    if((Local_u32Status & UART_FLAG_RXNE) == UART_FLAG_RXNE)
+    else if((Local_u32Status & UART_FLAG_RXNE) == UART_FLAG_RXNE)
     {
-        Local_u8Byte = (uint8_t)Local_psUart->handle->Instance->DR;
-        if((Local_u32Status & (UART_FLAG_NE | UART_FLAG_FE | UART_FLAG_ORE | UART_FLAG_PE)) == FALSE)
-        {
-            Local_enError = RingBuffer_enPutItem(Local_psUart->rx_buffer, &Local_u8Byte);
-        }
+        Local_enError = RingBuffer_enPutItem(Local_psUart->rx_buffer, (uint8_t *)&Local_psUart->handle->Instance->DR);
+    }
+    else
+    {
+        /* do nothing */
     }
 
     /**
@@ -783,6 +797,10 @@ UART_Error_t UART_enUpdateChannel(UART_Channel_t enChannel)
         {
             Local_psUart->handle->Instance->DR = Local_u8Byte;
         }
+        else
+        {
+            /* do nothing */
+        }
     }
 
 #else
@@ -798,9 +816,9 @@ UART_Error_t UART_enUpdateChannel(UART_Channel_t enChannel)
 
 static void UART_vidIrqCallback(UART_t const * const psUart)
 {
+    uint32_t Local_u32Status;
     RingBuffer_Error_t Local_enError;
     uint8_t Local_u8Byte;
-    uint32_t Local_u32Status;
 
     /**
      * Handle UART error handling:
@@ -808,8 +826,24 @@ static void UART_vidIrqCallback(UART_t const * const psUart)
      * - Error flags (in USARTx->SR) are cleared by: 
      *   1- reading UARTx->SR register, followed by
      *   2- reading USARTx->DR register
+     * 
+     * if any error flag (PE, ORE, NE, FE) is set: clear error flags & return
      * */
     Local_u32Status = psUart->handle->Instance->SR;
+    if(Local_u32Status & (UART_FLAG_NE | UART_FLAG_FE | UART_FLAG_ORE | UART_FLAG_PE))
+    {
+        Local_u8Byte = (uint8_t)psUart->handle->Instance->DR;
+        (void)Local_u8Byte;
+        return;
+    }
+
+    /**
+     * @todo IDEL (RX) complete notification (also enable IDLE interrupt)
+     *  if((Local_u32Status & UART_FLAG_IDLE) == UART_FLAG_IDLE)
+     *  {
+     *      // call uart RX notification
+     *  }
+     */
 
     /**
      * Handle UART RX
@@ -817,18 +851,20 @@ static void UART_vidIrqCallback(UART_t const * const psUart)
      * If UART->RXNE flag is set (when a byte is received on UART) and
      * If UART->RXNEI (RX not empty interrupt):
      *   - read byte from UART->DR 
-     *   - If no parity error:
-     *     - put byte into UART->rx_buffer
-     *   - Else:
-     *     - Ignore read byte with parity error
+     *   - put byte into UART channel's rx_buffer
+     * 
+     * @note __HAL_UART_GET_IT_SOURCE() uses ternary operator `?`, so direct access to UART->CR1 register is faster
+     *     - removed check for RXNE interrupt source because:
+     *       - Since UART_enInitialize() enables UART in receive mode only if CONF_UART_ENABLE_CHANNEL_X_RX is enabled, 
+     *         and RXNEIE is not set if receive mode is not enabled, and
+     *         UART_IRQHandler() is fired when: a) an error occur, b) RXNE flag is set or c) TXE flag is set. Then 
+     *         after checking for UART errors and there were none, UART_IRQ is fired either because of RXNE or TXE.
+     *         So checking for RXNE flag (without checking RXNEIE)
      * */
-    if(__HAL_UART_GET_IT_SOURCE(psUart->handle, UART_IT_RXNE) && ((Local_u32Status & UART_FLAG_RXNE) == UART_FLAG_RXNE))
+    if((Local_u32Status & UART_FLAG_RXNE) == UART_FLAG_RXNE)
     {
-        Local_u8Byte = (uint8_t)psUart->handle->Instance->DR;
-        if((Local_u32Status & (UART_FLAG_NE | UART_FLAG_FE | UART_FLAG_ORE | UART_FLAG_PE)) == FALSE)
-        {
-            Local_enError = RingBuffer_enPutItem(psUart->rx_buffer, &Local_u8Byte);
-        }
+        Local_enError = RingBuffer_enPutItem(psUart->rx_buffer, (uint8_t*)&psUart->handle->Instance->DR);
+        return;
     }
 
     /**
@@ -841,8 +877,11 @@ static void UART_vidIrqCallback(UART_t const * const psUart)
      * 
      *   - else (UART->tx_buffer is empty):
      *     - disable UART->TXEI (TX empty interrupt)
+     * 
+     * @note __HAL_UART_GET_IT_SOURCE() uses ternary operator `?`, so direct access to UART->CR1 register is faster
      * */
-    if(__HAL_UART_GET_IT_SOURCE(psUart->handle, UART_IT_TXE) && ((Local_u32Status & UART_FLAG_TXE) == UART_FLAG_TXE))
+    /* if(__HAL_UART_GET_IT_SOURCE(psUart->handle, UART_IT_TXE) && ((Local_u32Status & UART_FLAG_TXE) == UART_FLAG_TXE)) */
+    if(((psUart->handle->Instance->CR1 & USART_CR1_TXEIE) == USART_CR1_TXEIE) & ((Local_u32Status & UART_FLAG_TXE) == UART_FLAG_TXE))
     {
         Local_enError = RingBuffer_enGetItem(psUart->tx_buffer, &Local_u8Byte);
         if(Local_enError == RING_BUFFER_ERROR_NONE)
@@ -857,6 +896,10 @@ static void UART_vidIrqCallback(UART_t const * const psUart)
              * and that keeps triggerring UART interrupt
              * */
             __HAL_UART_DISABLE_IT(psUart->handle, UART_IT_TXE);
+
+            /**
+             * @todo TX complete notification
+             */
         }
     }
 }
