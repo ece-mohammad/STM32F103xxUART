@@ -9,7 +9,7 @@ set(APPLICATIONS
     "interrupt/uart_ll_tx"
     "interrupt/uart_ll_dma_echo"
     "interrupt/uart_ll_dma_tx"
-
+    
     # simple os
     "simple_os/uart_hal_echo"
     "simple_os/uart_hal_tx"
@@ -19,7 +19,6 @@ set(APPLICATIONS
     "simple_os/uart_ll_dma_tx"
     
     # free_rtos
-    # "free_rtos/uart_free_rtos_echo.c"
-    # "free_rtos/uart_free_rtos_tx.c"
+    "free_rtos/uart_rtos_echo"
 
 )
