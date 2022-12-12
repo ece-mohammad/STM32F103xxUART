@@ -156,7 +156,7 @@ static void SystemClock_Config(void)
     {
 
     }
-    
+
     LL_Init1msTick(CONF_FREERTOS_CPU_CLOCK_HZ);
     LL_SetSystemCoreClock(CONF_FREERTOS_CPU_CLOCK_HZ);
 

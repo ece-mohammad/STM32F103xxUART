@@ -22,7 +22,8 @@
 			"uart_conf.h": "c",
 			"simple_os.h": "c",
 			"uart_ll_dma_conf.h": "c",
-			"uart_rtos_conf.h": "c"
+			"uart_rtos_conf.h": "c",
+			"cmsis_os.h": "c"
 		},
 		"makefile.launchConfigurations": [
 			{

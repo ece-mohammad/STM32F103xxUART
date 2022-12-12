@@ -637,6 +637,7 @@ UART_Error_t UART_enInitialize(const UART_Channel_t enChannel, UART_Conf_t const
 {
     UART_t * Local_psUart = NULL;
     RingBuffer_Error_t Local_enBufferError;
+    UART_Conf_t Local_sUartConf = {0};
 
 #ifdef DEBUG
 
@@ -659,6 +660,8 @@ UART_Error_t UART_enInitialize(const UART_Channel_t enChannel, UART_Conf_t const
     Local_psUart = UART_asHandles[enChannel];
 
 #endif /*  DEBUG  */
+
+    memcpy(&Local_sUartConf, psConf, sizeof(UART_Conf_t));
 
     /*  initialize channel's UART_t structure & enable its NVIC interrupt   */
 #if defined(UART_ENABLE_CHANNEL_1)
@@ -691,6 +694,8 @@ UART_Error_t UART_enInitialize(const UART_Channel_t enChannel, UART_Conf_t const
     /*  initialize UART TX buffer and DMA TX channel  */
     if(Local_psUart->tx_size)
     {
+        Local_sUartConf.TransferDirection |= LL_USART_DIRECTION_TX;
+
         Local_enBufferError = RingBuffer_enInit(Local_psUart->tx_buffer, Local_psUart->tx_data, Local_psUart->tx_size);
         configASSERT(Local_enBufferError == RING_BUFFER_ERROR_NONE);
 
@@ -704,13 +709,13 @@ UART_Error_t UART_enInitialize(const UART_Channel_t enChannel, UART_Conf_t const
          * mode = normal
          * priority = normal
          *
-         * memory address   (src) = 0
-         * memory data size (src) = byte
-         * memory inc mode  (src) = increment
+         * memory address   (src)       = 0
+         * memory data size (src)       = byte
+         * memory inc mode  (src)       = increment
          *
-         * peripheral address   (dst) = USARTx->DR
-         * peripheral data size (dst) = byte
-         * peripheral inc mode  (dst) = no increment
+         * peripheral address   (dst)   = USARTx->DR
+         * peripheral data size (dst)   = byte
+         * peripheral inc mode  (dst)   = no increment
          *
          * enable DMA TC (transfer complete) interrupt
          */
@@ -731,6 +736,12 @@ UART_Error_t UART_enInitialize(const UART_Channel_t enChannel, UART_Conf_t const
         /*  enable DMA TC interrupt  */
         LL_DMA_EnableIT_TC(Local_psUart->dma_handle, Local_psUart->dma_tx_channel);
 
+        /*  enable USART DMA TX request  */
+        LL_USART_EnableDMAReq_TX(Local_psUart->uart_handle);
+
+        Local_psUart->dma_context->tx_task_handle = osThreadCreate(Local_psUart->tx_thread, Local_psUart);
+        configASSERT(Local_psUart->dma_context->tx_task_handle);
+
         NVIC_SetPriority(Local_psUart->dma_tx_irqn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(), UART_INTERRUPT_PREEMPTION_PRIORITY, UART_INTERRUPT_GROUPING_PRIORITY));
         NVIC_EnableIRQ(Local_psUart->dma_tx_irqn);
     }
@@ -738,6 +749,8 @@ UART_Error_t UART_enInitialize(const UART_Channel_t enChannel, UART_Conf_t const
     /*  initialize UART RX GPIO pins, RX buffer and DMA RX channel  */
     if(Local_psUart->rx_size)
     {
+        Local_sUartConf.TransferDirection |= LL_USART_DIRECTION_RX;
+
         Local_enBufferError = RingBuffer_enInit(Local_psUart->rx_buffer, Local_psUart->rx_data, Local_psUart->rx_size);
         configASSERT(Local_enBufferError == RING_BUFFER_ERROR_NONE);
 
@@ -752,13 +765,13 @@ UART_Error_t UART_enInitialize(const UART_Channel_t enChannel, UART_Conf_t const
          * mode = circular
          * priority = normal
          *
-         * memory address   (src) = psUart->dma_rx_buffer
-         * memory data size (src) = byte
-         * memory inc mode  (src) = increment
+         * memory address   (src)       = psUart->dma_rx_buffer
+         * memory data size (src)       = byte
+         * memory inc mode  (src)       = increment
          *
-         * peripheral address   (dst) = USARTx->DR
-         * peripheral data size (dst) = byte
-         * peripheral inc mode  (dst) = no increment
+         * peripheral address   (dst)   = USARTx->DR
+         * peripheral data size (dst)   = byte
+         * peripheral inc mode  (dst)   = no increment
          *
          * enable DMA TC (transfer complete) interrupt
          * enable DMA TC (half transfer) interrupt
@@ -782,42 +795,31 @@ UART_Error_t UART_enInitialize(const UART_Channel_t enChannel, UART_Conf_t const
         LL_DMA_EnableIT_HT(Local_psUart->dma_handle, Local_psUart->dma_rx_channel);
         LL_DMA_EnableIT_TC(Local_psUart->dma_handle, Local_psUart->dma_rx_channel);
 
+        LL_DMA_EnableChannel(Local_psUart->dma_handle, Local_psUart->dma_rx_channel);
+
+        /*  enable USART DMA RX request and IDLE interrupt  */
+        LL_USART_EnableDMAReq_RX(Local_psUart->uart_handle);
+        LL_USART_EnableIT_IDLE(Local_psUart->uart_handle);
+        LL_USART_EnableIT_PE(Local_psUart->uart_handle);
+        LL_USART_EnableIT_ERROR(Local_psUart->uart_handle);
+
+        Local_psUart->dma_context->rx_task_handle = osThreadCreate(Local_psUart->rx_thread, Local_psUart);
+        configASSERT(Local_psUart->dma_context->rx_task_handle);
+
         NVIC_SetPriority(Local_psUart->dma_rx_irqn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(), UART_INTERRUPT_PREEMPTION_PRIORITY, UART_INTERRUPT_GROUPING_PRIORITY));
         NVIC_EnableIRQ(Local_psUart->dma_rx_irqn);
-
-        LL_DMA_EnableChannel(Local_psUart->dma_handle, Local_psUart->dma_rx_channel);
     }
 
     /*  Initialize UART channel  */
-    if(LL_USART_Init(Local_psUart->uart_handle, (LL_USART_InitTypeDef *)psConf) != SUCCESS)
+    if(LL_USART_Init(Local_psUart->uart_handle, &Local_sUartConf) != SUCCESS)
     {
         LL_USART_DeInit(Local_psUart->uart_handle);
         return UART_ERROR_NOT_INIT;
     }
 
-    /*  TODO :: create UART RX update task  */
-    Local_psUart->dma_context->rx_task_handle = osThreadCreate(Local_psUart->rx_thread, Local_psUart);
-    configASSERT(Local_psUart->dma_context->rx_task_handle);
-
-    Local_psUart->dma_context->tx_task_handle = osThreadCreate(Local_psUart->tx_thread, Local_psUart);
-    configASSERT(Local_psUart->dma_context->tx_task_handle);
-
     /*  Set UART in asynchronous mode & enable UART  */
     LL_USART_ConfigAsyncMode(Local_psUart->uart_handle);
     LL_USART_Enable(Local_psUart->uart_handle);
-
-    /*  enable USART DMA TX request  */
-    if((psConf->TransferDirection & LL_USART_DIRECTION_TX) == LL_USART_DIRECTION_TX)
-    {
-        LL_USART_EnableDMAReq_TX(Local_psUart->uart_handle);
-    }
-
-    /*  enable USART DMA RX request and IDLE interrupt  */
-    if((psConf->TransferDirection & LL_USART_DIRECTION_RX) == LL_USART_DIRECTION_RX)
-    {
-        LL_USART_EnableIT_IDLE(Local_psUart->uart_handle);
-        LL_USART_EnableDMAReq_RX(Local_psUart->uart_handle);
-    }
 
     NVIC_SetPriority(Local_psUart->uart_irqn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(), UART_INTERRUPT_PREEMPTION_PRIORITY, UART_INTERRUPT_GROUPING_PRIORITY));
     NVIC_EnableIRQ(Local_psUart->uart_irqn);
@@ -1130,6 +1132,7 @@ UART_Error_t UART_enFlushTx(const UART_Channel_t enChannel)
 
     do
     {
+        /* wait 1 OS tick */
         osDelay(1);
 
         /*  wait TX buffer to be empty  */
@@ -1172,58 +1175,6 @@ UART_Error_t UART_enFlushRx(const UART_Channel_t enChannel)
 
 UART_Error_t UART_enUpdateChannel(UART_Channel_t enChannel)
 {
-#if 0
-
-#ifdef UART_MINIMAL_INTERRUPTS
-
-    UART_t * Local_psUart = NULL;
-    RingBuffer_Counter_t Local_u32SkipCount;
-
-#ifdef DEBUG
-
-    if((enChannel >= UART_CHANNEL_COUNT) || IS_NULLPTR(Local_psUart = (UART_t*)UART_asHandles[enChannel]))
-    {
-        return UART_ERROR_INVALID_CHANNEL;
-    }
-    else
-    {
-        (void)0;
-    }
-
-#else
-
-    Local_psUart = (UART_t*)UART_asHandles[enChannel];
-
-#endif /*  DEBUG  */
-
-
-    if(Local_psUart->tx_size && Local_psUart->dma_context->dma_tx_complete_flag)
-    {
-        Local_psUart->dma_context->dma_tx_complete_flag = 0;
-
-        /*  Skip DMA TX size from TX buffer (those items were transfered to UART DR already)  */
-        RingBuffer_enSkipItems(Local_psUart->tx_buffer, Local_psUart->dma_context->dma_tx_curent_transfer, &Local_u32SkipCount);
-
-        /*  Reset DMA TX size  */
-        Local_psUart->dma_context->dma_tx_curent_transfer = 0;
-
-        UART_DMA_vidTransmitData(Local_psUart);
-    }
-
-    if(Local_psUart->rx_size && Local_psUart->dma_context->dma_rx_pending_flag)
-    {
-        Local_psUart->dma_context->dma_rx_pending_flag = 0;
-        UART_DMA_vidReceiveData(Local_psUart);
-    }
-
-#else
-
-    (void)enChannel;
-
-#endif /*  UART_MINIMAL_INTERRUPTS  */
-
-#endif  /* 0 */
-
     (void)enChannel;
 
     return UART_ERROR_NONE;
@@ -1256,8 +1207,6 @@ static void UART_vidIrqCallback(const UART_t * const psUart)
 
 static void UART_DMA_TX_IRQHandler(const UART_t * const psUart)
 {
-    osStatus error;
-
     /**
      * Check if TC interrupt is enabled (it should be enabled in UART_vidInitialize() right after DMA TX channel initialization)
      * and DMA TC flag is active
@@ -1276,8 +1225,6 @@ static void UART_DMA_TX_IRQHandler(const UART_t * const psUart)
 
 static void UART_DMA_RX_IRQHandler(const UART_t * const psUart)
 {
-    osStatus error;
-
     if(LL_DMA_IsEnabledIT_HT(psUart->dma_handle, psUart->dma_rx_channel) && psUart->dma_rx_is_active_flag_ht(psUart->dma_handle))
     {
         psUart->dma_rx_clearflag_ht(psUart->dma_handle);
