@@ -4,20 +4,20 @@ include(${CMAKE_HOME_DIRECTORY}/cmake/st_ll.cmake)
 include(${CMAKE_HOME_DIRECTORY}/cmake/stm32f103cbtx.cmake)
 include(${CMAKE_HOME_DIRECTORY}/cmake/gcc-arm.cmake)
 
-set(EXECUTABLE FREERTOS_UART_RTOS_ECHO)
+set(EXECUTABLE FREERTOS_UART_LL_DMA_ECHO)
 
 # List of source files to compile
 set(APP_SOURCES
     # Put here your source files, one in each line, relative to CMakeLists.txt file location
 
     # application source files
-    ${PROJECT_PATH}/Application/free_rtos/uart_rtos_echo/Src/main.c
-    ${PROJECT_PATH}/Application/free_rtos/uart_rtos_echo/Src/gpio.c
-    ${PROJECT_PATH}/Application/free_rtos/uart_rtos_echo/Src/freertos.c
-    ${PROJECT_PATH}/Application/free_rtos/uart_rtos_echo/Src/stm32f1xx_it.c
-    ${PROJECT_PATH}/Application/free_rtos/uart_rtos_echo/Src/syscalls.c
-    ${PROJECT_PATH}/Application/free_rtos/uart_rtos_echo/Src/sysmem.c
-    ${PROJECT_PATH}/Application/free_rtos/uart_rtos_echo/Src/system_stm32f1xx.c
+    ${PROJECT_PATH}/Application/free_rtos/uart_ll_dma_echo/Src/main.c
+    ${PROJECT_PATH}/Application/free_rtos/uart_ll_dma_echo/Src/gpio.c
+    ${PROJECT_PATH}/Application/free_rtos/uart_ll_dma_echo/Src/freertos.c
+    ${PROJECT_PATH}/Application/free_rtos/uart_ll_dma_echo/Src/stm32f1xx_it.c
+    ${PROJECT_PATH}/Application/free_rtos/uart_ll_dma_echo/Src/syscalls.c
+    ${PROJECT_PATH}/Application/free_rtos/uart_ll_dma_echo/Src/sysmem.c
+    ${PROJECT_PATH}/Application/free_rtos/uart_ll_dma_echo/Src/system_stm32f1xx.c
     
     # freertos source files
     ${PROJECT_PATH}/Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS/cmsis_os.c
@@ -31,7 +31,7 @@ set(APP_SOURCES
     ${PROJECT_PATH}/Modules/buffer/ring_buffer.c
 
     # uart source files
-    ${PROJECT_PATH}/Modules/serial/uart/rtos/uart_rtos.c
+    ${PROJECT_PATH}/Modules/serial/uart/ll_dma/uart_ll_dma.c
 
     # HAL libraries source files (from st_ll.cmake)
     ${HAL_DRIVERS_C_SOURCES}
@@ -45,7 +45,7 @@ set(APP_INCLUDE_PATHS
     # Put here your include dirs, one in each line, relative to CMakeLists.txt file location
 
     # application include paths
-    ${PROJECT_PATH}/Application/free_rtos/uart_rtos_echo/Inc
+    ${PROJECT_PATH}/Application/free_rtos/uart_ll_dma_echo/Inc
     
     # freertos include paths
     ${PROJECT_PATH}/Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS

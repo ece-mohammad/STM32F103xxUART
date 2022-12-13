@@ -20,5 +20,5 @@ set(APPLICATIONS
     
     # free_rtos
     "free_rtos/uart_rtos_echo"
-
+    "free_rtos/uart_ll_dma_echo"
 )
